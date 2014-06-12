@@ -65,7 +65,7 @@ deploy: compile
 #	rm -rf $(PLUGINNAME).zip
 
 # The dclean target removes compiled python files from plugin directory
-# also delets any .svn entry
+# also deletes any .svn entry
 dclean:
 	find $(HOME)/.qgis2/python/plugins/$(PLUGINNAME) -iname "*.pyc" -delete
 	find $(HOME)/.qgis2/python/plugins/$(PLUGINNAME) -iname ".svn" -prune -exec rm -Rf {} \;

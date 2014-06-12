@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>343</width>
-    <height>335</height>
+    <width>340</width>
+    <height>392</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -30,7 +30,7 @@
       <enum>QTabWidget::North</enum>
      </property>
      <property name="currentIndex">
-      <number>0</number>
+      <number>2</number>
      </property>
      <widget class="QWidget" name="tabWidgetPage1">
       <attribute name="title">
@@ -181,25 +181,8 @@
       <attribute name="title">
        <string>Options</string>
       </attribute>
-      <layout class="QVBoxLayout" name="verticalLayout_4">
-       <item>
-        <widget class="QCheckBox" name="cbxClick">
-         <property name="toolTip">
-          <string>Replaces active map tool. Use this to select a particular point or if plotting is slow (e.g. when using mpl Graph).</string>
-         </property>
-         <property name="text">
-          <string>Plot values only when mouse is clicked</string>
-         </property>
-        </widget>
-       </item>
-       <item>
-        <widget class="Line" name="line_2">
-         <property name="orientation">
-          <enum>Qt::Horizontal</enum>
-         </property>
-        </widget>
-       </item>
-       <item>
+      <layout class="QGridLayout" name="gridLayout_3">
+       <item row="2" column="0">
         <layout class="QGridLayout" name="gridLayout_2">
          <item row="2" column="0">
           <widget class="QLabel" name="label_4">
@@ -242,7 +225,12 @@
            </item>
            <item>
             <property name="text">
-             <string>Selected layers</string>
+             <string>Manual selection</string>
+            </property>
+           </item>
+           <item>
+            <property name="text">
+             <string>By selection string</string>
             </property>
            </item>
           </widget>
@@ -268,21 +256,73 @@
          </item>
         </layout>
        </item>
-       <item>
+       <item row="1" column="0">
         <widget class="Line" name="line">
          <property name="orientation">
           <enum>Qt::Horizontal</enum>
          </property>
         </widget>
        </item>
-       <item>
+       <item row="0" column="0">
+        <widget class="QCheckBox" name="cbxClick">
+         <property name="toolTip">
+          <string>Replaces active map tool. Use this to select a particular point or if plotting is slow (e.g. when using mpl Graph).</string>
+         </property>
+         <property name="text">
+          <string>Plot values only when mouse is clicked</string>
+         </property>
+        </widget>
+       </item>
+       <item row="3" column="0">
+        <widget class="Line" name="line_2">
+         <property name="orientation">
+          <enum>Qt::Horizontal</enum>
+         </property>
+        </widget>
+       </item>
+       <item row="4" column="0">
+        <widget class="QLabel" name="setActiveLayerLabel">
+         <property name="text">
+          <string>Select active layer by selection string:</string>
+         </property>
+        </widget>
+       </item>
+       <item row="5" column="0">
+        <layout class="QGridLayout" name="gridLayout">
+         <item row="0" column="0">
+          <widget class="QLabel" name="selectionStringLabel">
+           <property name="text">
+            <string>Selection string:</string>
+           </property>
+          </widget>
+         </item>
+         <item row="0" column="1">
+          <widget class="QLineEdit" name="selectionStringLineEdit">
+           <property name="enabled">
+            <bool>false</bool>
+           </property>
+           <property name="text">
+            <string>MYD09CMG.A2002186.005.*.hdf </string>
+           </property>
+          </widget>
+         </item>
+        </layout>
+       </item>
+       <item row="6" column="0">
+        <widget class="Line" name="line_3">
+         <property name="orientation">
+          <enum>Qt::Horizontal</enum>
+         </property>
+        </widget>
+       </item>
+       <item row="7" column="0">
         <widget class="QLabel" name="label_5">
          <property name="text">
           <string>Select active layers and display options:</string>
          </property>
         </widget>
        </item>
-       <item>
+       <item row="8" column="0">
         <widget class="QTableWidget" name="tableWidget2">
          <property name="editTriggers">
           <set>QAbstractItemView::NoEditTriggers</set>
@@ -315,18 +355,110 @@
          </column>
         </widget>
        </item>
-       <item>
-        <spacer name="verticalSpacer">
-         <property name="orientation">
-          <enum>Qt::Vertical</enum>
+      </layout>
+     </widget>
+     <widget class="QWidget" name="tabWidgetPage4">
+      <attribute name="title">
+       <string>Time</string>
+      </attribute>
+      <layout class="QGridLayout" name="gridLayout_5">
+       <item row="1" column="0" colspan="2">
+        <widget class="QLabel" name="priorityLabel">
+         <property name="enabled">
+          <bool>false</bool>
          </property>
-         <property name="sizeHint" stdset="0">
-          <size>
-           <width>20</width>
-           <height>40</height>
-          </size>
+         <property name="text">
+          <string>Extract time from (highest priority on top):</string>
          </property>
-        </spacer>
+        </widget>
+       </item>
+       <item row="3" column="0">
+        <widget class="QLabel" name="patternLabel">
+         <property name="enabled">
+          <bool>false</bool>
+         </property>
+         <property name="text">
+          <string>Pattern:</string>
+         </property>
+        </widget>
+       </item>
+       <item row="3" column="1">
+        <widget class="QLineEdit" name="patternLineEdit">
+         <property name="enabled">
+          <bool>false</bool>
+         </property>
+         <property name="text">
+          <string>MYD09CMG.A2002186.005.%Y%j%H%M%S.hdf </string>
+         </property>
+        </widget>
+       </item>
+       <item row="4" column="0" colspan="2">
+        <widget class="QCheckBox" name="writeMetaDataCheckBox">
+         <property name="enabled">
+          <bool>false</bool>
+         </property>
+         <property name="text">
+          <string>Write time to metadata (overwrite existing)</string>
+         </property>
+         <property name="checked">
+          <bool>true</bool>
+         </property>
+        </widget>
+       </item>
+       <item row="0" column="0" colspan="2">
+        <widget class="QCheckBox" name="enableMTAnalysesCheckBox">
+         <property name="toolTip">
+          <string>If you enable this Option your data will be reorder chronologically and points with no data will be omitted in the graph.</string>
+         </property>
+         <property name="text">
+          <string>Enable multi-temporal analysis</string>
+         </property>
+        </widget>
+       </item>
+       <item row="2" column="0" colspan="2">
+        <widget class="QListWidget" name="extractionPriorityListWidget">
+         <property name="enabled">
+          <bool>false</bool>
+         </property>
+         <property name="dragDropMode">
+          <enum>QAbstractItemView::InternalMove</enum>
+         </property>
+         <property name="defaultDropAction">
+          <enum>Qt::MoveAction</enum>
+         </property>
+         <item>
+          <property name="text">
+           <string>GDALPamDataset</string>
+          </property>
+          <property name="checkState">
+           <enum>Checked</enum>
+          </property>
+         </item>
+         <item>
+          <property name="text">
+           <string>Filename</string>
+          </property>
+          <property name="checkState">
+           <enum>Checked</enum>
+          </property>
+         </item>
+         <item>
+          <property name="text">
+           <string>Exif</string>
+          </property>
+          <property name="checkState">
+           <enum>Checked</enum>
+          </property>
+         </item>
+         <item>
+          <property name="text">
+           <string>TIFF-Header</string>
+          </property>
+          <property name="checkState">
+           <enum>Checked</enum>
+          </property>
+         </item>
+        </widget>
        </item>
       </layout>
      </widget>

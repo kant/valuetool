@@ -17,40 +17,42 @@
  ***************************************************************************/
 """
 
-from PyQt4 import QtCore, QtGui
+#from PyQt4 import QtCore, QtGui
 from PyQt4.QtCore import *
 from PyQt4.QtGui import QCursor, QPixmap
 
 from qgis.gui import QgsMapTool
 
-# cursor taken from QGIS qgscursors.cpp - these should be available in python api!
+# cursor taken from QGIS qgscursors.cpp
+# these should be available in python api!
 identify_cursor = [
-  "16 16 3 1",
-  "# c None",
-  "a c #000000",
-  ". c #ffffff",
-  ".###########..##",
-  "...########.aa.#",
-  ".aa..######.aa.#",
-  "#.aaa..#####..##",
-  "#.aaaaa..##.aa.#",
-  "##.aaaaaa...aa.#",
-  "##.aaaaaa...aa.#",
-  "##.aaaaa.##.aa.#",
-  "###.aaaaa.#.aa.#",
-  "###.aa.aaa..aa.#",
-  "####..#..aa.aa.#",
-  "####.####.aa.a.#",
-  "##########.aa..#",
-  "###########.aa..",
-  "############.a.#",
-  "#############.##"
+    "16 16 3 1",
+    "# c None",
+    "a c #000000",
+    ". c #ffffff",
+    ".###########..##",
+    "...########.aa.#",
+    ".aa..######.aa.#",
+    "#.aaa..#####..##",
+    "#.aaaaa..##.aa.#",
+    "##.aaaaaa...aa.#",
+    "##.aaaaaa...aa.#",
+    "##.aaaaa.##.aa.#",
+    "###.aaaaa.#.aa.#",
+    "###.aa.aaa..aa.#",
+    "####..#..aa.aa.#",
+    "####.####.aa.a.#",
+    "##########.aa..#",
+    "###########.aa..",
+    "############.a.#",
+    "#############.##"
 ]
+
 
 class ValueMapTool(QgsMapTool):
 
     def __init__(self, canvas, button):
-        QgsMapTool.__init__(self,canvas)
+        QgsMapTool.__init__(self, canvas)
         self.canvas = canvas
         #self.cursor = QCursor(Qt.CrossCursor)
         self.cursor = QCursor(QPixmap(identify_cursor), 1, 1)
@@ -65,18 +67,18 @@ class ValueMapTool(QgsMapTool):
     def deactivate(self):
         if not self:
             return
-        self.emit( SIGNAL("deactivate") )
+        self.emit(SIGNAL("deactivate"))
         self.button.setCheckable(False)
         QgsMapTool.deactivate(self)
 
     def isZoomTool(self):
         return False
 
-    def setCursor(self,cursor):
+    def setCursor(self, cursor):
         self.cursor = QCursor(cursor)
 
-    def canvasMoveEvent(self,event):
-        self.emit( SIGNAL("moved"), QPoint(event.pos().x(), event.pos().y()) )
+    def canvasMoveEvent(self, event):
+        self.emit(SIGNAL("moved"), QPoint(event.pos().x(), event.pos().y()))
 
-    def canvasPressEvent(self,event):
-        self.emit( SIGNAL("pressed"), QPoint(event.pos().x(), event.pos().y()) )
+    def canvasPressEvent(self, event):
+        self.emit(SIGNAL("pressed"), QPoint(event.pos().x(), event.pos().y()))

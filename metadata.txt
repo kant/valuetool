@@ -8,8 +8,10 @@ category = Raster
 version = version 0.8.5
 author = 'Ghislain Picard - Etienne Tourigny'
 email=etourigny.dev@gmail.com
-; original author is no longer contributing, current maintainer is Etienne Tourigny
-; other authors include : Richard Duivenvoorde, Ricardo Silva, Etienne Tourigny, Radim Blazek
+; original author is no longer contributing,
+; current maintainer is Etienne Tourigny
+; other authors include :   Richard Duivenvoorde, Ricardo Silva,
+;                           Etienne Tourigny, Radim Blazek
 ; optional metadata entries
 changelog=
     0.8.5 : do not de-activate tool when using other map tools and mouse click not enabled (#10027)
