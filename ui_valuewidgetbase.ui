@@ -15,7 +15,7 @@
   </property>
   <layout class="QVBoxLayout" name="verticalLayout">
    <item>
-    <widget class="QCheckBox" name="cbxEnable">
+    <widget class="QCheckBox" name="toggleValueTool">
      <property name="toolTip">
       <string>Can also be enabled using the &quot;Value Tool&quot; toolbar icon</string>
      </property>
@@ -291,6 +291,15 @@
         <layout class="QGridLayout" name="gridLayout">
          <item row="0" column="0">
           <widget class="QLabel" name="selectionStringLabel">
+           <property name="toolTip">
+            <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;
+&lt;table border=&quot;0&quot;&gt;
+&lt;tr&gt;&lt;td&gt;*&lt;/td&gt;&lt;td&gt; matches everything&lt;/td&gt;&lt;/tr&gt;
+&lt;tr&gt;&lt;td&gt;?&lt;/td&gt;&lt;td&gt; matches any single character&lt;/td&gt;&lt;/tr&gt;
+&lt;tr&gt;&lt;td&gt;[seq]&lt;/td&gt;&lt;td&gt; matches any character in seq&lt;/td&gt;&lt;/tr&gt;
+&lt;tr&gt;&lt;td&gt;[!seq]&lt;/td&gt;&lt;td&gt; matches any character not in seq&lt;/td&gt;&lt;/tr&gt;
+&lt;/table&gt;&lt;/body&gt;&lt;/html&gt;</string>
+           </property>
            <property name="text">
             <string>Selection string:</string>
            </property>
@@ -301,8 +310,17 @@
            <property name="enabled">
             <bool>false</bool>
            </property>
+           <property name="toolTip">
+            <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;
+&lt;table border=&quot;0&quot;&gt;
+&lt;tr&gt;&lt;td&gt;*&lt;/td&gt;&lt;td&gt; matches everything&lt;/td&gt;&lt;/tr&gt;
+&lt;tr&gt;&lt;td&gt;?&lt;/td&gt;&lt;td&gt; matches any single character&lt;/td&gt;&lt;/tr&gt;
+&lt;tr&gt;&lt;td&gt;[seq]&lt;/td&gt;&lt;td&gt; matches any character in seq&lt;/td&gt;&lt;/tr&gt;
+&lt;tr&gt;&lt;td&gt;[!seq]&lt;/td&gt;&lt;td&gt; matches any character not in seq&lt;/td&gt;&lt;/tr&gt;
+&lt;/table&gt;&lt;/body&gt;&lt;/html&gt;</string>
+           </property>
            <property name="text">
-            <string>MYD09CMG.A2002186.005.*.hdf </string>
+            <string>*</string>
            </property>
           </widget>
          </item>
@@ -323,7 +341,7 @@
         </widget>
        </item>
        <item row="8" column="0">
-        <widget class="QTableWidget" name="tableWidget2">
+        <widget class="QTableWidget" name="selectionTableWidget">
          <property name="editTriggers">
           <set>QAbstractItemView::NoEditTriggers</set>
          </property>

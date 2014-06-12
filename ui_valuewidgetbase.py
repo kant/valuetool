@@ -2,7 +2,7 @@
 
 # Form implementation generated from reading ui file 'ui_valuewidgetbase.ui'
 #
-# Created: Thu Jun 12 13:05:26 2014
+# Created: Thu Jun 12 19:32:50 2014
 #      by: PyQt4 UI code generator 4.10.3
 #
 # WARNING! All changes made in this file will be lost!
@@ -29,9 +29,9 @@ class Ui_ValueWidgetBase(object):
         ValueWidgetBase.resize(340, 392)
         self.verticalLayout = QtGui.QVBoxLayout(ValueWidgetBase)
         self.verticalLayout.setObjectName(_fromUtf8("verticalLayout"))
-        self.cbxEnable = QtGui.QCheckBox(ValueWidgetBase)
-        self.cbxEnable.setObjectName(_fromUtf8("cbxEnable"))
-        self.verticalLayout.addWidget(self.cbxEnable)
+        self.toggleValueTool = QtGui.QCheckBox(ValueWidgetBase)
+        self.toggleValueTool.setObjectName(_fromUtf8("toggleValueTool"))
+        self.verticalLayout.addWidget(self.toggleValueTool)
         self.tabWidget = QtGui.QTabWidget(ValueWidgetBase)
         self.tabWidget.setTabPosition(QtGui.QTabWidget.North)
         self.tabWidget.setObjectName(_fromUtf8("tabWidget"))
@@ -171,20 +171,20 @@ class Ui_ValueWidgetBase(object):
         self.label_5 = QtGui.QLabel(self.tabWidgetPage3)
         self.label_5.setObjectName(_fromUtf8("label_5"))
         self.gridLayout_3.addWidget(self.label_5, 7, 0, 1, 1)
-        self.tableWidget2 = QtGui.QTableWidget(self.tabWidgetPage3)
-        self.tableWidget2.setEditTriggers(QtGui.QAbstractItemView.NoEditTriggers)
-        self.tableWidget2.setObjectName(_fromUtf8("tableWidget2"))
-        self.tableWidget2.setColumnCount(4)
-        self.tableWidget2.setRowCount(0)
+        self.selectionTableWidget = QtGui.QTableWidget(self.tabWidgetPage3)
+        self.selectionTableWidget.setEditTriggers(QtGui.QAbstractItemView.NoEditTriggers)
+        self.selectionTableWidget.setObjectName(_fromUtf8("selectionTableWidget"))
+        self.selectionTableWidget.setColumnCount(4)
+        self.selectionTableWidget.setRowCount(0)
         item = QtGui.QTableWidgetItem()
-        self.tableWidget2.setHorizontalHeaderItem(0, item)
+        self.selectionTableWidget.setHorizontalHeaderItem(0, item)
         item = QtGui.QTableWidgetItem()
-        self.tableWidget2.setHorizontalHeaderItem(1, item)
+        self.selectionTableWidget.setHorizontalHeaderItem(1, item)
         item = QtGui.QTableWidgetItem()
-        self.tableWidget2.setHorizontalHeaderItem(2, item)
+        self.selectionTableWidget.setHorizontalHeaderItem(2, item)
         item = QtGui.QTableWidgetItem()
-        self.tableWidget2.setHorizontalHeaderItem(3, item)
-        self.gridLayout_3.addWidget(self.tableWidget2, 8, 0, 1, 1)
+        self.selectionTableWidget.setHorizontalHeaderItem(3, item)
+        self.gridLayout_3.addWidget(self.selectionTableWidget, 8, 0, 1, 1)
         self.tabWidget.addTab(self.tabWidgetPage3, _fromUtf8(""))
         self.tabWidgetPage4 = QtGui.QWidget()
         self.tabWidgetPage4.setObjectName(_fromUtf8("tabWidgetPage4"))
@@ -242,8 +242,8 @@ class Ui_ValueWidgetBase(object):
 
     def retranslateUi(self, ValueWidgetBase):
         ValueWidgetBase.setWindowTitle(_translate("ValueWidgetBase", "Form", None))
-        self.cbxEnable.setToolTip(_translate("ValueWidgetBase", "Can also be enabled using the \"Value Tool\" toolbar icon", None))
-        self.cbxEnable.setText(_translate("ValueWidgetBase", "Enable", None))
+        self.toggleValueTool.setToolTip(_translate("ValueWidgetBase", "Can also be enabled using the \"Value Tool\" toolbar icon", None))
+        self.toggleValueTool.setText(_translate("ValueWidgetBase", "Enable", None))
         self.cbxDigits.setToolTip(_translate("ValueWidgetBase", "Specify how many digits to show in table", None))
         self.cbxDigits.setText(_translate("ValueWidgetBase", "Decimals", None))
         item = self.tableWidget.horizontalHeaderItem(0)
@@ -269,17 +269,31 @@ class Ui_ValueWidgetBase(object):
         self.cbxClick.setToolTip(_translate("ValueWidgetBase", "Replaces active map tool. Use this to select a particular point or if plotting is slow (e.g. when using mpl Graph).", None))
         self.cbxClick.setText(_translate("ValueWidgetBase", "Plot values only when mouse is clicked", None))
         self.setActiveLayerLabel.setText(_translate("ValueWidgetBase", "Select active layer by selection string:", None))
+        self.selectionStringLabel.setToolTip(_translate("ValueWidgetBase", "<html><head/><body>\n"
+"<table border=\"0\">\n"
+"<tr><td>*</td><td> matches everything</td></tr>\n"
+"<tr><td>?</td><td> matches any single character</td></tr>\n"
+"<tr><td>[seq]</td><td> matches any character in seq</td></tr>\n"
+"<tr><td>[!seq]</td><td> matches any character not in seq</td></tr>\n"
+"</table></body></html>", None))
         self.selectionStringLabel.setText(_translate("ValueWidgetBase", "Selection string:", None))
-        self.selectionStringLineEdit.setText(_translate("ValueWidgetBase", "MYD09CMG.A2002186.005.*.hdf ", None))
+        self.selectionStringLineEdit.setToolTip(_translate("ValueWidgetBase", "<html><head/><body>\n"
+"<table border=\"0\">\n"
+"<tr><td>*</td><td> matches everything</td></tr>\n"
+"<tr><td>?</td><td> matches any single character</td></tr>\n"
+"<tr><td>[seq]</td><td> matches any character in seq</td></tr>\n"
+"<tr><td>[!seq]</td><td> matches any character not in seq</td></tr>\n"
+"</table></body></html>", None))
+        self.selectionStringLineEdit.setText(_translate("ValueWidgetBase", "*", None))
         self.label_5.setText(_translate("ValueWidgetBase", "Select active layers and display options:", None))
-        item = self.tableWidget2.horizontalHeaderItem(0)
+        item = self.selectionTableWidget.horizontalHeaderItem(0)
         item.setToolTip(_translate("ValueWidgetBase", "Select layers", None))
-        item = self.tableWidget2.horizontalHeaderItem(1)
+        item = self.selectionTableWidget.horizontalHeaderItem(1)
         item.setText(_translate("ValueWidgetBase", "Layer", None))
-        item = self.tableWidget2.horizontalHeaderItem(2)
+        item = self.selectionTableWidget.horizontalHeaderItem(2)
         item.setText(_translate("ValueWidgetBase", "#", None))
         item.setToolTip(_translate("ValueWidgetBase", "Select bands", None))
-        item = self.tableWidget2.horizontalHeaderItem(3)
+        item = self.selectionTableWidget.horizontalHeaderItem(3)
         item.setText(_translate("ValueWidgetBase", "Bands", None))
         self.tabWidget.setTabText(self.tabWidget.indexOf(self.tabWidgetPage3), _translate("ValueWidgetBase", "Options", None))
         self.priorityLabel.setText(_translate("ValueWidgetBase", "Extract time from (highest priority on top):", None))

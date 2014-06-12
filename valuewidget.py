@@ -27,6 +27,8 @@ from PyQt4.QtCore import *
 from PyQt4.QtGui import *
 from qgis.core import *
 
+import fnmatch  # Import filtering for Layernames
+
 from ui_valuewidgetbase import Ui_ValueWidgetBase as Ui_Widget
 
 hasqwt = True
@@ -99,12 +101,15 @@ class ValueWidget(QWidget, Ui_Widget):
         QObject.connect(self.cbxBands,
                         SIGNAL("currentIndexChanged ( int )"),
                         self.updateLayers)
-        QObject.connect(self.tableWidget2,
+        QObject.connect(self.selectionTableWidget,
                         SIGNAL("cellChanged ( int , int )"),
                         self.layerSelected)
         QObject.connect(self.enableMTAnalysesCheckBox,
                         SIGNAL("toggled ( bool )"),
                         self.on_mt_analysis_toggled)
+        QObject.connect(self.selectionStringLineEdit,
+                        SIGNAL("textChanged(QString)"),
+                        self.updateLayers)
 
     def setupUi_plot(self):
 
@@ -207,7 +212,7 @@ class ValueWidget(QWidget, Ui_Widget):
         self.isActive = active
 
         if active:
-            self.cbxEnable.setCheckState(Qt.Checked)
+            self.toggleValueTool.setCheckState(Qt.Checked)
             QObject.connect(self.canvas,
                             SIGNAL("layersChanged ()"),
                             self.invalidatePlot)
@@ -216,7 +221,7 @@ class ValueWidget(QWidget, Ui_Widget):
                                 SIGNAL("xyCoordinates(const QgsPoint &)"),
                                 self.printValue)
         else:
-            self.cbxEnable.setCheckState(Qt.Unchecked)
+            self.toggleValueTool.setCheckState(Qt.Unchecked)
             QObject.disconnect(self.canvas,
                                SIGNAL("layersChanged ()"),
                                self.invalidatePlot)
@@ -244,7 +249,7 @@ class ValueWidget(QWidget, Ui_Widget):
             index = self.cbxLayers.currentIndex()
         if index == 0:
             allLayers = self.canvas.layers()
-        elif index == 1:
+        elif index == 1 or index == 3:
             allLayers = self.legend.layers()
         elif index == 2:
             for layer in self.legend.layers():
@@ -252,6 +257,13 @@ class ValueWidget(QWidget, Ui_Widget):
                     allLayers.append(layer)
 
         for layer in allLayers:
+
+            if index == 3:
+                # Check if the layer name matches our filter and skip it if it
+                # doesn't
+                if not self.name_matches_filter(layer.name()):
+                    continue
+
             if layer is not None and layer.isValid() and \
                     layer.type() == QgsMapLayer.RasterLayer and \
                     layer.dataProvider() and \
@@ -292,7 +304,8 @@ class ValueWidget(QWidget, Ui_Widget):
         layers = self.activeRasterLayers()
         if len(layers) == 0:
             if self.canvas.layerCount() > 0:
-                self.labelStatus.setText(self.tr("No valid layers to display - change layers in options"))
+                self.labelStatus.setText(self.tr("No valid layers to display "
+                                                 "- change layers in Options"))
             else:
                 self.labelStatus.setText(self.tr("No valid layers to display"))
             self.values = []
@@ -336,8 +349,8 @@ class ValueWidget(QWidget, Ui_Widget):
         # keep them in a dict() with key=layer.id()
 
         for layer in rasterlayers:
-            layername = unicode(layer.name())
-            layerSrs = layer.crs()
+            layer_name = unicode(layer.name())
+            layer_srs = layer.crs()
 
             pos = position
 
@@ -345,8 +358,8 @@ class ValueWidget(QWidget, Ui_Widget):
             if position is None:
                 pos = QgsPoint(0, 0)
             # transform points if needed
-            elif not mapCanvasSrs == layerSrs and self.iface.mapCanvas().hasCrsTransformEnabled():
-                srsTransform = QgsCoordinateTransform(mapCanvasSrs, layerSrs)
+            elif not mapCanvasSrs == layer_srs and self.iface.mapCanvas().hasCrsTransformEnabled():
+                srsTransform = QgsCoordinateTransform(mapCanvasSrs, layer_srs)
                 try:
                     pos = srsTransform.transform(position)
                 except QgsCsException, err:
@@ -356,8 +369,8 @@ class ValueWidget(QWidget, Ui_Widget):
             if True:  # for QGIS >= 1.9
                 if not layer.dataProvider():
                     continue
-
                 ident = None
+
                 if position is not None:
                     canvas = self.iface.mapCanvas()
 
@@ -388,7 +401,7 @@ class ValueWidget(QWidget, Ui_Widget):
                 activeBands = self.activeBandsForRaster(layer)
 
                 for iband in activeBands:  # loop over the active bands
-                    layernamewithband = layername
+                    layernamewithband = layer_name
                     if ident is not None and len(ident) > 1:
                         layernamewithband += ' ' + layer.bandName(iband)
 
@@ -555,6 +568,7 @@ class ValueWidget(QWidget, Ui_Widget):
 
     def on_mt_analysis_toggled(self, new_state):
         if new_state == 1:
+
             self.priorityLabel.setEnabled(True)
             self.extractionPriorityListWidget.setEnabled(True)
             self.patternLabel.setEnabled(True)
@@ -570,6 +584,10 @@ class ValueWidget(QWidget, Ui_Widget):
             self.writeMetaDataCheckBox.setEnabled(False)
             self.labelStatus.setText(self.tr(""))
 
+    def name_matches_filter(self, name):
+        selection_string = self.selectionStringLineEdit.text()
+        return fnmatch.fnmatchcase(name, selection_string)
+
     # update active layers in table
     def updateLayers(self):
         if self.tabWidget.currentIndex() != 2:
@@ -582,18 +600,19 @@ class ValueWidget(QWidget, Ui_Widget):
 
         if self.cbxLayers.currentIndex() == 0:
             layers = self.activeRasterLayers(0)
+        elif self.cbxLayers.currentIndex() == 3:
+            layers = self.activeRasterLayers(3)
         else:
             layers = self.activeRasterLayers(1)
 
-        self.tableWidget2.blockSignals(True)
-        self.tableWidget2.clearContents()
-        self.tableWidget2.setRowCount(len(layers))
-        self.tableWidget2.horizontalHeader().resizeSection(0, 20)
-        self.tableWidget2.horizontalHeader().resizeSection(2, 20)
+        self.selectionTableWidget.blockSignals(True)
+        self.selectionTableWidget.clearContents()
+        self.selectionTableWidget.setRowCount(len(layers))
+        self.selectionTableWidget.horizontalHeader().resizeSection(0, 20)
+        self.selectionTableWidget.horizontalHeader().resizeSection(2, 20)
 
         j = 0
         for layer in layers:
-
             item = QTableWidgetItem()
             item.setFlags(item.flags() | Qt.ItemIsUserCheckable)
             if self.cbxLayers.currentIndex() != 2:
@@ -604,10 +623,10 @@ class ValueWidget(QWidget, Ui_Widget):
                     item.setCheckState(Qt.Checked)
                 else:
                     item.setCheckState(Qt.Unchecked)
-            self.tableWidget2.setItem(j, 0, item)
+            self.selectionTableWidget.setItem(j, 0, item)
             item = QTableWidgetItem(layer.name())
             item.setData(Qt.UserRole, layer.id())
-            self.tableWidget2.setItem(j, 1, item)
+            self.selectionTableWidget.setItem(j, 1, item)
             activeBands = self.activeBandsForRaster(layer)
             button = QToolButton()
             button.setText("#")  # TODO add edit? icon
@@ -640,13 +659,13 @@ class ValueWidget(QWidget, Ui_Widget):
                 button.setMenu(menu)
             else:
                 button.setEnabled(False)
-            self.tableWidget2.setCellWidget(j, 2, button)
+            self.selectionTableWidget.setCellWidget(j, 2, button)
             item = QTableWidgetItem(str(activeBands))
             item.setToolTip(str(activeBands))
-            self.tableWidget2.setItem(j, 3, item)
+            self.selectionTableWidget.setItem(j, 3, item)
             j = j + 1
 
-        self.tableWidget2.blockSignals(False)
+        self.selectionTableWidget.blockSignals(False)
 
     # slot for when active layer selection has changed
     def layerSelected(self, row, column):
@@ -654,9 +673,9 @@ class ValueWidget(QWidget, Ui_Widget):
             return
 
         self.layersSelected = []
-        for i in range(0, self.tableWidget2.rowCount()):
-            item = self.tableWidget2.item(i, 0)
-            layerID = self.tableWidget2.item(i, 1).data(Qt.UserRole)
+        for i in range(0, self.selectionTableWidget.rowCount()):
+            item = self.selectionTableWidget.item(i, 0)
+            layerID = self.selectionTableWidget.item(i, 1).data(Qt.UserRole)
             if item and item.checkState() == Qt.Checked:
                 self.layersSelected.append(layerID)
             elif layerID in self.layersSelected:
@@ -704,7 +723,7 @@ class ValueWidget(QWidget, Ui_Widget):
         # update UI
         item = QTableWidgetItem(str(activeBands))
         item.setToolTip(str(activeBands))
-        self.tableWidget2.setItem(j, 3, item)
+        self.selectionTableWidget.setItem(j, 3, item)
 
     # event filter for band selection menu, do not close after toggling each
     # band

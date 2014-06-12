@@ -17,7 +17,7 @@
  ***************************************************************************/
  This script initializes the plugin, making it known to QGIS.
 """
-
+#from pydev import pydevd; pydevd.settrace('localhost', port=53100, stdoutToServer=True, stderrToServer=True)
 from PyQt4.QtCore import *
 from PyQt4.QtGui import *
 from qgis.core import *
@@ -29,6 +29,11 @@ from valuemaptool import ValueMapTool
 # initialize Qt resources from file resouces.py
 import resources_rc
 
+
+def debug():
+    from pydev import pydevd
+    pydevd.settrace('localhost', port=53100, stdoutToServer=True,
+                    stderrToServer=True)
 
 class ValueTool:
     def __init__(self, iface):
@@ -63,7 +68,7 @@ class ValueTool:
                         self.valuewidget.toolMoved)
         QObject.connect(self.tool, SIGNAL("pressed"),
                         self.valuewidget.toolPressed)
-        QObject.connect(self.valuewidget.cbxEnable,
+        QObject.connect(self.valuewidget.toggleValueTool,
                         SIGNAL("clicked( bool )"),
                         self.toggleTool)
         QObject.connect(self.valuewidget.cbxClick,
@@ -94,6 +99,8 @@ class ValueTool:
         self.iface.removeToolBarIcon(self.action)
 
     def toggleTool(self, active):
+        # Enable debugging at Enabling the Tool
+        debug()
         self.activateTool() if active else self.deactivateTool()
 
     def toggleMouseClick(self, toggle):
