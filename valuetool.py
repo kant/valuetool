@@ -100,7 +100,7 @@ class ValueTool:
 
     def toggleTool(self, active):
         # Enable debugging at Enabling the Tool
-        debug()
+	#debug()
         self.activateTool() if active else self.deactivateTool()
 
     def toggleMouseClick(self, toggle):
