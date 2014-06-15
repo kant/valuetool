@@ -28,40 +28,107 @@ from PyQt4.QtGui import *
 from qgis.core import *
 
 import fnmatch  # Import filtering for Layernames
+import datetime  # for dealing with Multi-temporal data
+from distutils.version import StrictVersion
+import numpy as np
+import time
 
 from ui_valuewidgetbase import Ui_ValueWidgetBase as Ui_Widget
 
-hasqwt = True
+has_qwt = True
 try:
     from PyQt4.Qwt5 import QwtPlot, QwtPlotCurve, QwtScaleDiv, QwtSymbol
 except:
-    hasqwt = False
+    has_qwt = False
 
 #test if matplotlib >= 1.0
-hasmpl = True
+has_mpl = True
 try:
     import matplotlib
     import matplotlib.pyplot as plt
     import matplotlib.ticker as ticker
+    import matplotlib.dates as dates
     from matplotlib.backends.backend_qt4agg import FigureCanvasQTAgg
 except:
-    hasmpl = False
-if hasmpl:
-    if int(matplotlib.__version__[0]) < 1:
-        hasmpl = False
+    has_mpl = StrictVersion(matplotlib.__version__) > StrictVersion('1.0.0')
+#if has_mpl:
+#    if int(matplotlib.__version__[0]) < 1:
+#        has_mpl = False
+
+# TODO: Get better debugging
 debug = 0
+
+has_pyqtgraph = True
+try:
+    import pyqtgraph as pg
+except:
+    has_pyqtgraph = StrictVersion(pyqtgraph.__version__) > StrictVersion(
+        '0.9.7')
+
+
+class DateAxis(pg.AxisItem):
+    def tickStrings(self, values, scale, spacing):
+        strns = []
+        rng = max(values)-min(values)
+        #if rng < 120:
+        #    return pg.AxisItem.tickStrings(self, values, scale, spacing)
+        if rng < 3600*24:
+            string = '%H:%M:%S'
+            label1 = '%b %d -'
+            label2 = ' %b %d, %Y'
+        elif rng >= 3600*24 and rng < 3600*24*30:
+            string = '%d'
+            label1 = '%b - '
+            label2 = '%b, %Y'
+        elif rng >= 3600*24*30 and rng < 3600*24*30*24:
+            string = '%b %y'
+            label1 = '%Y -'
+            label2 = ' %Y'
+        elif rng >=3600*24*30*24:
+            string = '%Y'
+            label1 = ''
+            label2 = ''
+        for x in values:
+            try:
+                strns.append(time.strftime(string, time.localtime(x)))
+            except ValueError:  ## Windows can't handle dates before 1970
+                strns.append('')
+        try:
+            label = time.strftime(label1, time.localtime(min(values)))+time.strftime(label2, time.localtime(max(values)))
+        except ValueError:
+            label = ''
+        #self.setLabel(text=label)
+        return strns
+
+class CustomViewBox(pg.ViewBox):
+    def __init__(self, *args, **kwds):
+        pg.ViewBox.__init__(self, *args, **kwds)
+        self.setMouseMode(self.RectMode)
+
+    ## reimplement right-click to zoom out
+    def mouseClickEvent(self, ev):
+        if ev.button() == QtCore.Qt.RightButton:
+            self.autoRange()
+
+    def mouseDragEvent(self, ev):
+        if ev.button() == QtCore.Qt.RightButton:
+            ev.ignore()
+        else:
+            pg.ViewBox.mouseDragEvent(self, ev)
 
 
 class ValueWidget(QWidget, Ui_Widget):
 
     def __init__(self, iface):
-        self.hasqwt = hasqwt
-        self.hasmpl = hasmpl
+        self.hasqwt = has_qwt
+        self.hasmpl = has_mpl
+        self.haspqg = has_pyqtgraph
         self.layerMap = dict()
         self.statsChecked = False
         self.ymin = 0
         self.ymax = 250
         self.isActive = False
+        self.mt_enabled = False
 
         # Statistics (>=1.9)
         self.statsSampleSize = 2500000
@@ -78,7 +145,7 @@ class ValueWidget(QWidget, Ui_Widget):
         QWidget.__init__(self)
         self.setupUi(self)
         self.tabWidget.setEnabled(False)
-        self.cbxClick.setChecked(QSettings().value(
+        self.plotOnMove.setChecked(QSettings().value(
             'plugins/valuetool/mouseClick', False, type=bool))
 
         # self.setupUi_plot()
@@ -89,19 +156,19 @@ class ValueWidget(QWidget, Ui_Widget):
         self.mplPlot = None
         self.mplLine = None
 
-        QObject.connect(self.plotSelector,
+        QObject.connect(self.plotLibSelector,
                         SIGNAL("currentIndexChanged ( int )"),
                         self.changePlot)
         QObject.connect(self.tabWidget,
                         SIGNAL("currentChanged ( int )"),
                         self.tabWidgetChanged)
-        QObject.connect(self.cbxLayers,
+        QObject.connect(self.layerSelection,
                         SIGNAL("currentIndexChanged ( int )"),
                         self.updateLayers)
-        QObject.connect(self.cbxBands,
+        QObject.connect(self.bandSelection,
                         SIGNAL("currentIndexChanged ( int )"),
                         self.updateLayers)
-        QObject.connect(self.selectionTableWidget,
+        QObject.connect(self.selectionTable,
                         SIGNAL("cellChanged ( int , int )"),
                         self.layerSelected)
         QObject.connect(self.enableMTAnalysesCheckBox,
@@ -111,18 +178,25 @@ class ValueWidget(QWidget, Ui_Widget):
                         SIGNAL("textChanged(QString)"),
                         self.updateLayers)
 
+        self.setupUi_plot()
+
     def setupUi_plot(self):
 
+        need_library_message = QtGui.QLabel("Need Qwt >= 5.0 or "
+                                            "matplotlib >= 1.0 or "
+                                            "PyQtGraph > 0.9.8 !")
         # plot
-        self.plotSelector.setVisible(False)
-        self.cbxStats.setVisible(False)
+        self.plotLibSelector.setVisible(False)
+        self.enableStatistics.setVisible(False)
         # stats by default because estimated are fast
-        self.cbxStats.setChecked(True)
-        self.plotSelector.addItem('Qwt')
-        self.plotSelector.addItem('mpl')
+        self.enableStatistics.setChecked(True)
+
+        plot_count = 0
 
         # Page 2 - qwt
         if self.hasqwt:
+            self.plotLibSelector.addItem('Qwt')
+            plot_count += 1
             self.qwtPlot = QwtPlot(self.stackedWidget)
             self.qwtPlot.setAutoFillBackground(False)
             self.qwtPlot.setObjectName("qwtPlot")
@@ -134,8 +208,7 @@ class ValueWidget(QWidget, Ui_Widget):
                           QSize(9, 9)))
             self.curve.attach(self.qwtPlot)
         else:
-            self.qwtPlot = QtGui.QLabel("Need Qwt >= 5.0 or "
-                                        "matplotlib >= 1.0 !")
+            self.qwtPlot = need_library_message
 
         sizePolicy = QtGui.QSizePolicy(QtGui.QSizePolicy.Expanding,
                                        QtGui.QSizePolicy.Expanding)
@@ -149,6 +222,8 @@ class ValueWidget(QWidget, Ui_Widget):
         #Page 3 - matplotlib
         self.mplLine = None  # make sure to invalidate when layers change
         if self.hasmpl:
+            self.plotLibSelector.addItem('matplotlib')
+            plot_count += 1
             # mpl stuff
             # should make figure light gray
             self.mplBackground = None
@@ -158,9 +233,13 @@ class ValueWidget(QWidget, Ui_Widget):
                                         right=0.975,
                                         bottom=0.13,
                                         top=0.95)
-            self.mplPlt = self.mplFig.add_subplot(111)
-            self.mplPlt.tick_params(axis='both', which='major', labelsize=12)
-            self.mplPlt.tick_params(axis='both', which='minor', labelsize=10)
+            self.mpl_subplot = self.mplFig.add_subplot(111)
+            self.mpl_subplot.tick_params(axis='both',
+                                         which='major',
+                                         labelsize=12)
+            self.mpl_subplot.tick_params(axis='both',
+                                         which='minor',
+                                         labelsize=10)
             # qt stuff
             self.pltCanvas = FigureCanvasQTAgg(self.mplFig)
             self.pltCanvas.setParent(self.stackedWidget)
@@ -168,8 +247,7 @@ class ValueWidget(QWidget, Ui_Widget):
             self.pltCanvas.setObjectName("mplPlot")
             self.mplPlot = self.pltCanvas
         else:
-            self.mplPlot = QtGui.QLabel("Need Qwt >= 5.0 or "
-                                        "matplotlib >= 1.0 !")
+            self.mplPlot = need_library_message
 
         sizePolicy = QtGui.QSizePolicy(QtGui.QSizePolicy.Expanding,
                                        QtGui.QSizePolicy.Expanding)
@@ -180,22 +258,42 @@ class ValueWidget(QWidget, Ui_Widget):
         self.mplPlot.updateGeometry()
         self.stackedWidget.addWidget(self.mplPlot)
 
-        if self.hasqwt and self.hasmpl:
-            self.plotSelector.setEnabled(True)
-            self.plotSelector.setVisible(True)
-            self.plotSelector.setCurrentIndex(0);
+        if self.haspqg:
+            self.plotLibSelector.addItem('PyQtGraph')
+            plot_count += 1
+            # Setup PyQtGraph stuff
+            self.pqg_axis = DateAxis(orientation='bottom')
+            vb = CustomViewBox()
+            pg.setConfigOption('background', 'w')
+            pg.setConfigOption('foreground', 'k')
+            self.pqg_plot_widget = pg.PlotWidget(parent=self.stackedWidget,
+                                                 viewBox=vb, axisItems={
+                    'bottom': self.pqg_axis}, enableMenu=False, title="Kick my "
+                                                                   "balls")
+        else:
+            self.pqg_plot_widget = need_library_message
+
+        self.pqg_plot_widget.setSizePolicy(sizePolicy)
+        self.pqg_plot_widget.updateGeometry()
+        self.stackedWidget.addWidget(self.pqg_plot_widget)
+
+        if plot_count > 1:
+            self.plotLibSelector.setEnabled(True)
+            self.plotLibSelector.setVisible(True)
+            self.plotLibSelector.setCurrentIndex(0)
         else:
             if self.hasqwt:
-                self.plotSelector.setCurrentIndex(0);
+                self.plotLibSelector.setCurrentIndex(0)
+            elif self.hasmpl:
+                self.plotLibSelector.setCurrentIndex(1)
             else:
-                self.plotSelector.setCurrentIndex(1);
-        self.changePlot()
+                self.plotLibSelector.setCurrentIndex(2)
 
     def keyPressEvent(self, e):
         if (e.modifiers() == Qt.ControlModifier or e.modifiers() == Qt.MetaModifier) and e.key() == Qt.Key_C:
             items = ''
-            for rec in range(self.tableWidget.rowCount()):
-                items += '"' + self.tableWidget.item(rec, 0).text() + '",' + self.tableWidget.item(rec, 1).text() + "\n"
+            for rec in range(self.valueTable.rowCount()):
+                items += '"' + self.valueTable.item(rec, 0).text() + '",' + self.valueTable.item(rec, 1).text() + "\n"
             if not items == '':
                 clipboard = QApplication.clipboard()
                 clipboard.setText(items)
@@ -203,10 +301,13 @@ class ValueWidget(QWidget, Ui_Widget):
             QWidget.keyPressEvent(self, e)
 
     def changePlot(self):
-        if self.plotSelector.currentText() == 'mpl':
-            self.stackedWidget.setCurrentIndex(1)
-        else:
+        # TODO Add the magic for pyqtgraph here?
+        if self.plotLibSelector.currentText() == 'Qwt':
             self.stackedWidget.setCurrentIndex(0)
+        elif self.plotLibSelector.currentText() == 'matplotlib':
+            self.stackedWidget.setCurrentIndex(1)
+        elif self.plotLibSelector.currentText() == 'PyQtGraph':
+            self.stackedWidget.setCurrentIndex(2)
 
     def changeActive(self, active, gui=True):
         self.isActive = active
@@ -216,7 +317,7 @@ class ValueWidget(QWidget, Ui_Widget):
             QObject.connect(self.canvas,
                             SIGNAL("layersChanged ()"),
                             self.invalidatePlot)
-            if not self.cbxClick.isChecked():
+            if not self.plotOnMove.isChecked():
                 QObject.connect(self.canvas,
                                 SIGNAL("xyCoordinates(const QgsPoint &)"),
                                 self.printValue)
@@ -246,7 +347,7 @@ class ValueWidget(QWidget, Ui_Widget):
         allLayers = []
 
         if not index:
-            index = self.cbxLayers.currentIndex()
+            index = self.layerSelection.currentIndex()
         if index == 0:
             allLayers = self.canvas.layers()
         elif index == 1 or index == 3:
@@ -267,18 +368,17 @@ class ValueWidget(QWidget, Ui_Widget):
             if layer is not None and layer.isValid() and \
                     layer.type() == QgsMapLayer.RasterLayer and \
                     layer.dataProvider() and \
-                    (layer.dataProvider().capabilities() &
-                         QgsRasterDataProvider.IdentifyValue):
-                        layers.append(layer)
+                    (layer.dataProvider().capabilities() & QgsRasterDataProvider.IdentifyValue):
+                layers.append(layer)
 
         return layers
 
     def activeBandsForRaster(self, layer):
         activeBands = []
 
-        if self.cbxBands.currentIndex() == 1 and layer.renderer():
+        if self.bandSelection.currentIndex() == 1 and layer.renderer():
             activeBands = layer.renderer().usesBands()
-        elif self.cbxBands.currentIndex() == 2:
+        elif self.bandSelection.currentIndex() == 2:
             if layer.bandCount() == 1:
                 activeBands = [1]
             else:
@@ -302,6 +402,7 @@ class ValueWidget(QWidget, Ui_Widget):
             print("%d active rasters, %d canvas layers" % (len(
                 self.activeRasterLayers()), self.canvas.layerCount()))
         layers = self.activeRasterLayers()
+
         if len(layers) == 0:
             if self.canvas.layerCount() > 0:
                 self.labelStatus.setText(self.tr("No valid layers to display "
@@ -315,21 +416,20 @@ class ValueWidget(QWidget, Ui_Widget):
         self.labelStatus.setText(self.tr('Coordinate:') + ' (%f, %f)' % (
             position.x(), position.y()))
 
-        needextremum = (self.tabWidget.currentIndex() == 1)  # if plot is shown
-        # count the number of requires rows and remember the raster layers
+        need_extremum = (self.tabWidget.currentIndex() == 1)  # if plot is shown
+        # count the number of required rows and remember the raster layers
         nrow = 0
         rasterlayers = []
         layersWOStatistics = []
 
         for layer in layers:
-
             nrow += layer.bandCount()
             rasterlayers.append(layer)
 
             # check statistics for each band
-            if needextremum:
+            if need_extremum:
                 for i in range(1, layer.bandCount()+1):
-                    has_stats = self.getStats(layer, i) is not None
+                    has_stats = self.get_statistics(layer, i) is not None
                     if not layer.id() in self.layerMap and not has_stats \
                             and not layer in layersWOStatistics:
                         layersWOStatistics.append(layer)
@@ -346,8 +446,9 @@ class ValueWidget(QWidget, Ui_Widget):
 
         # TODO - calculate the min/max values only once,
         # instead of every time!!!
-        # keep them in a dict() with key=layer.id()
+        # And keep them in a dict() with key=layer.id()
 
+        counter = 0
         for layer in rasterlayers:
             layer_name = unicode(layer.name())
             layer_srs = layer.crs()
@@ -358,7 +459,8 @@ class ValueWidget(QWidget, Ui_Widget):
             if position is None:
                 pos = QgsPoint(0, 0)
             # transform points if needed
-            elif not mapCanvasSrs == layer_srs and self.iface.mapCanvas().hasCrsTransformEnabled():
+            elif not mapCanvasSrs == layer_srs and \
+                    self.iface.mapCanvas().hasCrsTransformEnabled():
                 srsTransform = QgsCoordinateTransform(mapCanvasSrs, layer_srs)
                 try:
                     pos = srsTransform.transform(position)
@@ -401,9 +503,9 @@ class ValueWidget(QWidget, Ui_Widget):
                 activeBands = self.activeBandsForRaster(layer)
 
                 for iband in activeBands:  # loop over the active bands
-                    layernamewithband = layer_name
+                    layer_name_with_band = layer_name
                     if ident is not None and len(ident) > 1:
-                        layernamewithband += ' ' + layer.bandName(iband)
+                        layer_name_with_band += ' ' + layer.bandName(iband)
 
                     if not ident or not ident.has_key(iband):  #should not happen
                         bandvalue = "?"
@@ -412,14 +514,16 @@ class ValueWidget(QWidget, Ui_Widget):
                         if bandvalue is None:
                             bandvalue = "no data"
 
-                    self.values.append((layernamewithband, str(bandvalue)))
+                    tup = (layer_name_with_band, counter+1, str(bandvalue))
+                    self.values.append(tup)
 
-                    if needextremum:
+                    if need_extremum:
                         # estimated statistics
-                        stats = self.getStats(layer, iband)
+                        stats = self.get_statistics(layer, iband)
                         if stats:
                             self.ymin = min(self.ymin, stats.minimumValue)
                             self.ymax = max(self.ymax, stats.maximumValue)
+                    counter += 1
 
         if len(self.values) == 0:
             self.labelStatus.setText(self.tr("No valid bands to display"))
@@ -439,13 +543,13 @@ class ValueWidget(QWidget, Ui_Widget):
 
         self.statsChecked = True
 
-        layerNames = []
+        layernames = []
         for layer in layersWOStatistics:
             if not layer.id() in self.layerMap:
-                layerNames.append(layer.name())
+                layernames.append(layer.name())
 
-        if len(layerNames) != 0:
-            if not self.cbxStats.isChecked():
+        if len(layernames) != 0:
+            if not self.enableStatistics.isChecked():
                 for layer in layersWOStatistics:
                     self.layerMap[layer.id()] = True
                 return
@@ -460,30 +564,37 @@ class ValueWidget(QWidget, Ui_Widget):
             if not layer.id() in self.layerMap:
                 self.layerMap[layer.id()] = True
                 for i in range(1, layer.bandCount()+1):
-                    self.getStats(layer, i, True)
+                    self.get_statistics(layer, i, True)
 
         if save_state:
             self.changeActive(True, False)  # activate if necessary
 
     # get cached statistics for layer and band or None if not calculated
-    def getStats(self, layer, bandNo, force=False):
+    def get_statistics(self, layer, bandNo, force=False):
         if self.stats.has_key(layer):
             if self.stats[layer].has_key(bandNo):
                 return self.stats[layer][bandNo]
         else:
             self.stats[layer] = {}
 
-        if force or layer.dataProvider().hasStatistics(bandNo, QgsRasterBandStats.Min | QgsRasterBandStats.Min, QgsRectangle(), self.statsSampleSize):
-            self.stats[layer][bandNo] = layer.dataProvider().bandStatistics(bandNo, QgsRasterBandStats.Min | QgsRasterBandStats.Min, QgsRectangle(), self.statsSampleSize)
+        if force or \
+                layer.dataProvider().hasStatistics(bandNo,
+                                                   QgsRasterBandStats.Min | QgsRasterBandStats.Min,
+                                                   QgsRectangle(),
+                                                   self.statsSampleSize):
+            self.stats[layer][bandNo] = \
+                layer.dataProvider().bandStatistics(bandNo,
+                                                    QgsRasterBandStats.Min | QgsRasterBandStats.Min,
+                                                    QgsRectangle(),
+                                                    self.statsSampleSize)
             return self.stats[layer][bandNo]
         return None
 
     def printInTable(self):
         # set table widget row count
-        self.tableWidget.setRowCount(len(self.values))
+        self.valueTable.setRowCount(len(self.values))
         irow = 0
-        for row in self.values:
-            layername, value = row
+        for layername, xval, value in self.values:
 
             # limit number of decimal places if requested
             if self.cbxDigits.isChecked():
@@ -492,55 +603,124 @@ class ValueWidget(QWidget, Ui_Widget):
                 except ValueError:
                     pass
 
-            if self.tableWidget.item(irow, 0) is None:
+            if self.valueTable.item(irow, 0) is None:
                 # create the item
-                self.tableWidget.setItem(irow, 0, QTableWidgetItem())
-                self.tableWidget.setItem(irow, 1, QTableWidgetItem())
+                self.valueTable.setItem(irow, 0, QTableWidgetItem())
+                self.valueTable.setItem(irow, 1, QTableWidgetItem())
 
-            self.tableWidget.item(irow, 0).setText(layername)
-            self.tableWidget.item(irow, 1).setText(value)
+            self.valueTable.item(irow, 0).setText(layername)
+            self.valueTable.item(irow, 1).setText(value)
             irow += 1
 
     def plot(self):
-        numvalues = []
-        if self.hasqwt or self.hasmpl:
-            for row in self.values:
-                layername, value = row
+        data_values = []
+        if self.hasqwt or self.hasmpl or self.haspqg:
+            for layername, xval, value in self.values:
                 try:
-                    numvalues.append(float(value))
+                    data_values.append(float(value))
                 except:
-                    numvalues.append(0)
+                    data_values.append(0)
 
         ymin = self.ymin
         ymax = self.ymax
+
         if self.leYMin.text() != '' and self.leYMax.text() != '':
             ymin = float(self.leYMin.text())
             ymax = float(self.leYMax.text())
 
-        if self.hasqwt and (self.plotSelector.currentText() == 'Qwt'):
+        if self.hasqwt and (self.plotLibSelector.currentText() == 'Qwt'):
             self.qwtPlot.setAxisMaxMinor(QwtPlot.xBottom, 0)
             #self.qwtPlot.setAxisMaxMajor(QwtPlot.xBottom,0)
             self.qwtPlot.setAxisScale(QwtPlot.xBottom, 1, len(self.values))
             #self.qwtPlot.setAxisScale(QwtPlot.yLeft,self.ymin,self.ymax)
             self.qwtPlot.setAxisScale(QwtPlot.yLeft, ymin, ymax)
-            self.curve.setData(range(1, len(numvalues)+1), numvalues)
+            self.curve.setData(range(1, len(data_values)+1), data_values)
             self.qwtPlot.replot()
-            self.qwtPlot.setVisible(len(numvalues) > 0)
+            self.qwtPlot.setVisible(len(data_values) > 0)
 
-        elif self.hasmpl and (self.plotSelector.currentText() == 'mpl'):
-            self.mplPlt.clear()
-            self.mplPlt.plot(range(1,
-                                   len(numvalues)+1),
-                             numvalues,
-                             marker='o',
-                             color='k',
-                             mfc='b',
-                             mec='b')
-            self.mplPlt.xaxis.set_major_locator(ticker.MaxNLocator(
-                integer=True))
-            self.mplPlt.yaxis.set_minor_locator(ticker.AutoMinorLocator())
-            self.mplPlt.set_xlim((1-0.25, len(self.values)+0.25))
-            self.mplPlt.set_ylim((ymin, ymax))
+        elif self.haspqg and (self.plotLibSelector.currentText() ==
+                                  'PyQtGraph'):
+            self.pqg_plot_widget.clear()  # clean canvas on call
+            # draw with pyqtgraph test
+            if self.mt_enabled:
+                pg.setConfigOption('background', 'w')
+                pg.setConfigOption('foreground', 'k')
+                #for i in range(3):
+                 #   plotWidget.plot(x, y[i], pen=(i, 3))  ## setting pen=(i,
+                    # 3) automaticaly creates three different-colored pens
+                dates = np.arange(8) * (3600*24*356)
+                self.pqg_plot_widget.plot(x=dates, y=[1, 6, 2, 4, 3, 5, 6, 8],
+                                          symbol='o')
+                #self.pqg_plot_widget.show()
+            else:
+                xValues = []
+                for i in range(len(data_values)):
+                    xValues.append(1+i)
+                self.pqg_plot_widget.plot(xValues, data_values)
+
+        elif self.hasmpl and (self.plotLibSelector.currentText() ==
+                              'matplotlib'):
+            self.mpl_subplot.clear()
+
+            # If Multi-temporal Analysis enabled set xAxis away from Standard
+            # 1 to values to dates.
+            if self.mt_enabled:
+                # temporal Date creation
+                xValues = []
+                for i in range(len(data_values)):
+                    xValues.append(datetime.datetime(2014, 1, 1+i))
+
+                # Plotcode from here
+                self.mpl_subplot.plot_date(xValues,
+                            data_values,
+                            'b-',
+                            xdate=True,
+                            ydate=False,
+                            marker='o',
+                            color='k',
+                            mfc='b',
+                            mec='b')
+
+                # hours = dates.HourLocator()
+                # days = dates.DayLocator()
+                # years = dates.YearLocator()   # every year
+                # months = dates.MonthLocator()  # every month
+                # major_formatter = dates.DateFormatter('%b')
+                # minor_formatter = dates.DateFormatter('%j')
+                # self.mpl_subplot.xaxis.set_major_locator(months)
+                # self.mpl_subplot.xaxis.set_major_formatter(major_formatter)
+                #
+                # self.mpl_subplot.xaxis.set_minor_locator(days)
+                # self.mpl_subplot.xaxis.set_minor_formatter(minor_formatter)
+                #
+                # labels = self.mpl_subplot.get_xticklabels()
+                # for label in labels:
+                #     label.set_rotation(45)
+                #     label.set_color('orange')
+
+                self.mplFig.autofmt_xdate()
+
+                self.mpl_subplot.set_xlim((min(xValues)-datetime.timedelta(
+                    hours=6), max(xValues)+datetime.timedelta(hours=6)))
+
+                self.mpl_subplot.set_ylim((ymin, ymax))
+            else:
+                xmin = 1
+                xmax = xmin + len(data_values)
+                xValues = range(xmin, xmax)
+                self.mpl_subplot.plot(xValues,
+                            data_values,
+                            marker='o',
+                            color='k',
+                            mfc='b',
+                            mec='b')
+
+                self.mpl_subplot.xaxis.set_major_locator(ticker.MaxNLocator(
+                    integer=True))
+                self.mpl_subplot.yaxis.set_minor_locator(ticker.AutoMinorLocator())
+                self.mpl_subplot.set_xlim((min(xValues)-0.25, max(xValues)+0.25))
+                self.mpl_subplot.set_ylim((ymin, ymax))
+
             self.mplFig.canvas.draw()
 
     def invalidatePlot(self, replot=True):
@@ -561,14 +741,14 @@ class ValueWidget(QWidget, Ui_Widget):
         self.invalidatePlot()
 
     def tabWidgetChanged(self):
-        if self.tabWidget.currentIndex() == 1 and not self.qwtPlot:
-            self.setupUi_plot()
+        #if self.tabWidget.currentIndex() == 1 and (self.hasmpl or self.haspqg):
+        #    self.setupUi_plot()
         if self.tabWidget.currentIndex() == 2:
             self.updateLayers()
 
     def on_mt_analysis_toggled(self, new_state):
         if new_state == 1:
-
+            self.mt_enabled = True
             self.priorityLabel.setEnabled(True)
             self.extractionPriorityListWidget.setEnabled(True)
             self.patternLabel.setEnabled(True)
@@ -577,6 +757,7 @@ class ValueWidget(QWidget, Ui_Widget):
             self.labelStatus.setText(self.tr("Multi-temporal analysis "
                                              "enabled!"))
         else:
+            self.mt_enabled = False
             self.priorityLabel.setEnabled(False)
             self.extractionPriorityListWidget.setEnabled(False)
             self.patternLabel.setEnabled(False)
@@ -593,29 +774,29 @@ class ValueWidget(QWidget, Ui_Widget):
         if self.tabWidget.currentIndex() != 2:
             return
 
-        if self.cbxLayers.currentIndex() == 3:
+        if self.layerSelection.currentIndex() == 3:
             self.selectionStringLineEdit.setEnabled(True)
         else:
             self.selectionStringLineEdit.setEnabled(False)
 
-        if self.cbxLayers.currentIndex() == 0:
+        if self.layerSelection.currentIndex() == 0:
             layers = self.activeRasterLayers(0)
-        elif self.cbxLayers.currentIndex() == 3:
+        elif self.layerSelection.currentIndex() == 3:
             layers = self.activeRasterLayers(3)
         else:
             layers = self.activeRasterLayers(1)
 
-        self.selectionTableWidget.blockSignals(True)
-        self.selectionTableWidget.clearContents()
-        self.selectionTableWidget.setRowCount(len(layers))
-        self.selectionTableWidget.horizontalHeader().resizeSection(0, 20)
-        self.selectionTableWidget.horizontalHeader().resizeSection(2, 20)
+        self.selectionTable.blockSignals(True)
+        self.selectionTable.clearContents()
+        self.selectionTable.setRowCount(len(layers))
+        self.selectionTable.horizontalHeader().resizeSection(0, 20)
+        self.selectionTable.horizontalHeader().resizeSection(2, 20)
 
         j = 0
         for layer in layers:
             item = QTableWidgetItem()
             item.setFlags(item.flags() | Qt.ItemIsUserCheckable)
-            if self.cbxLayers.currentIndex() != 2:
+            if self.layerSelection.currentIndex() != 2:
                 item.setFlags(item.flags() & ~Qt.ItemIsEnabled)
                 item.setCheckState(Qt.Checked)
             else:
@@ -623,10 +804,10 @@ class ValueWidget(QWidget, Ui_Widget):
                     item.setCheckState(Qt.Checked)
                 else:
                     item.setCheckState(Qt.Unchecked)
-            self.selectionTableWidget.setItem(j, 0, item)
+            self.selectionTable.setItem(j, 0, item)
             item = QTableWidgetItem(layer.name())
             item.setData(Qt.UserRole, layer.id())
-            self.selectionTableWidget.setItem(j, 1, item)
+            self.selectionTable.setItem(j, 1, item)
             activeBands = self.activeBandsForRaster(layer)
             button = QToolButton()
             button.setText("#")  # TODO add edit? icon
@@ -636,8 +817,8 @@ class ValueWidget(QWidget, Ui_Widget):
             QObject.connect(group,
                             SIGNAL("triggered(QAction*)"),
                             self.bandSelected)
-            if self.cbxBands.currentIndex() == 2 and layer.bandCount() > 1:
-                menu=QMenu()
+            if self.bandSelection.currentIndex() == 2 and layer.bandCount() > 1:
+                menu = QMenu()
                 menu.installEventFilter(self)
 
                 for iband in range(1, layer.bandCount()+1):
@@ -659,13 +840,13 @@ class ValueWidget(QWidget, Ui_Widget):
                 button.setMenu(menu)
             else:
                 button.setEnabled(False)
-            self.selectionTableWidget.setCellWidget(j, 2, button)
+            self.selectionTable.setCellWidget(j, 2, button)
             item = QTableWidgetItem(str(activeBands))
             item.setToolTip(str(activeBands))
-            self.selectionTableWidget.setItem(j, 3, item)
+            self.selectionTable.setItem(j, 3, item)
             j = j + 1
 
-        self.selectionTableWidget.blockSignals(False)
+        self.selectionTable.blockSignals(False)
 
     # slot for when active layer selection has changed
     def layerSelected(self, row, column):
@@ -673,9 +854,9 @@ class ValueWidget(QWidget, Ui_Widget):
             return
 
         self.layersSelected = []
-        for i in range(0, self.selectionTableWidget.rowCount()):
-            item = self.selectionTableWidget.item(i, 0)
-            layerID = self.selectionTableWidget.item(i, 1).data(Qt.UserRole)
+        for i in range(0, self.selectionTable.rowCount()):
+            item = self.selectionTable.item(i, 0)
+            layerID = self.selectionTable.item(i, 1).data(Qt.UserRole)
             if item and item.checkState() == Qt.Checked:
                 self.layersSelected.append(layerID)
             elif layerID in self.layersSelected:
@@ -723,7 +904,7 @@ class ValueWidget(QWidget, Ui_Widget):
         # update UI
         item = QTableWidgetItem(str(activeBands))
         item.setToolTip(str(activeBands))
-        self.selectionTableWidget.setItem(j, 3, item)
+        self.selectionTable.setItem(j, 3, item)
 
     # event filter for band selection menu, do not close after toggling each
     # band
@@ -743,9 +924,9 @@ class ValueWidget(QWidget, Ui_Widget):
                self.isActive and self.tabWidget.currentIndex() != 2
 
     def toolMoved(self, position):
-        if self.shouldPrintValues() and not self.cbxClick.isChecked():
+        if self.shouldPrintValues() and not self.plotOnMove.isChecked():
             self.printValue(self.canvas.getCoordinateTransform().toMapCoordinates(position))
 
     def toolPressed(self, position):
-        if self.shouldPrintValues() and self.cbxClick.isChecked():
+        if self.shouldPrintValues() and self.plotOnMove.isChecked():
             self.printValue(self.canvas.getCoordinateTransform().toMapCoordinates(position))

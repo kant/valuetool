@@ -17,7 +17,6 @@
  ***************************************************************************/
  This script initializes the plugin, making it known to QGIS.
 """
-#from pydev import pydevd; pydevd.settrace('localhost', port=53100, stdoutToServer=True, stderrToServer=True)
 from PyQt4.QtCore import *
 from PyQt4.QtGui import *
 from qgis.core import *
@@ -34,6 +33,7 @@ def debug():
     from pydev import pydevd
     pydevd.settrace('localhost', port=53100, stdoutToServer=True,
                     stderrToServer=True)
+
 
 class ValueTool:
     def __init__(self, iface):
@@ -71,7 +71,7 @@ class ValueTool:
         QObject.connect(self.valuewidget.toggleValueTool,
                         SIGNAL("clicked( bool )"),
                         self.toggleTool)
-        QObject.connect(self.valuewidget.cbxClick,
+        QObject.connect(self.valuewidget.plotOnMove,
                         SIGNAL("clicked( bool )"),
                         self.toggleMouseClick)
 
@@ -89,7 +89,7 @@ class ValueTool:
 
     def unload(self):
         QSettings().setValue('plugins/valuetool/mouseClick',
-                             self.valuewidget.cbxClick.isChecked())
+                             self.valuewidget.plotOnMove.isChecked())
         self.valuedockwidget.close()
         self.deactivateTool()
         # remove the dockwidget from iface
@@ -100,7 +100,11 @@ class ValueTool:
 
     def toggleTool(self, active):
         # Enable debugging at Enabling the Tool
-	#debug()
+        try:
+            debug()
+        except:
+            print 'Debugger not enabled'
+            pass
         self.activateTool() if active else self.deactivateTool()
 
     def toggleMouseClick(self, toggle):
@@ -112,7 +116,7 @@ class ValueTool:
         self.valuewidget.changeActive(True, False)
 
     def activateTool(self, changeActive=True):
-        if self.valuewidget.cbxClick.isChecked():
+        if self.valuewidget.plotOnMove.isChecked():
             self.saveTool = self.canvas.mapTool()
             self.canvas.setMapTool(self.tool)
         if not self.valuedockwidget.isVisible():

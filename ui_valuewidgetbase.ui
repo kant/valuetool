@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>340</width>
-    <height>392</height>
+    <width>330</width>
+    <height>373</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -30,7 +30,7 @@
       <enum>QTabWidget::North</enum>
      </property>
      <property name="currentIndex">
-      <number>2</number>
+      <number>0</number>
      </property>
      <widget class="QWidget" name="tabWidgetPage1">
       <attribute name="title">
@@ -83,7 +83,7 @@
         </widget>
        </item>
        <item>
-        <widget class="QTableWidget" name="tableWidget">
+        <widget class="QTableWidget" name="valueTable">
          <column>
           <property name="text">
            <string>Layer</string>
@@ -110,7 +110,7 @@
            <number>0</number>
           </property>
           <item>
-           <widget class="QCheckBox" name="cbxStats">
+           <widget class="QCheckBox" name="enableStatistics">
             <property name="toolTip">
              <string>Compute min/max when layers are loaded</string>
             </property>
@@ -120,7 +120,7 @@
            </widget>
           </item>
           <item>
-           <widget class="QLabel" name="label">
+           <widget class="QLabel" name="minYLabel">
             <property name="text">
              <string>Y min</string>
             </property>
@@ -130,7 +130,7 @@
            <widget class="QLineEdit" name="leYMin"/>
           </item>
           <item>
-           <widget class="QLabel" name="label_2">
+           <widget class="QLabel" name="maxYLabel">
             <property name="text">
              <string>Y max</string>
             </property>
@@ -138,19 +138,6 @@
           </item>
           <item>
            <widget class="QLineEdit" name="leYMax"/>
-          </item>
-          <item>
-           <widget class="QComboBox" name="plotSelector">
-            <property name="sizePolicy">
-             <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
-              <horstretch>0</horstretch>
-              <verstretch>0</verstretch>
-             </sizepolicy>
-            </property>
-            <property name="toolTip">
-             <string>Select plotting toolkit</string>
-            </property>
-           </widget>
           </item>
           <item>
            <spacer name="horizontalSpacer_3">
@@ -169,6 +156,21 @@
         </widget>
        </item>
        <item>
+        <widget class="QComboBox" name="plotLibSelector">
+         <property name="sizePolicy">
+          <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
+           <horstretch>0</horstretch>
+           <verstretch>0</verstretch>
+          </sizepolicy>
+         </property>
+         <property name="toolTip">
+          <string>Select plotting toolkit
+Qwt - Qwt toolkit (faster but soon unmaintained)
+mpl - matplotlib (slower but maintained)</string>
+         </property>
+        </widget>
+       </item>
+       <item>
         <widget class="QStackedWidget" name="stackedWidget">
          <property name="currentIndex">
           <number>-1</number>
@@ -183,9 +185,9 @@
       </attribute>
       <layout class="QGridLayout" name="gridLayout_3">
        <item row="2" column="0">
-        <layout class="QGridLayout" name="gridLayout_2">
+        <layout class="QGridLayout" name="selectLayerGrid">
          <item row="2" column="0">
-          <widget class="QLabel" name="label_4">
+          <widget class="QLabel" name="bandSelectionLabel">
            <property name="text">
             <string>Show bands:</string>
            </property>
@@ -205,14 +207,14 @@
           </spacer>
          </item>
          <item row="1" column="0">
-          <widget class="QLabel" name="label_3">
+          <widget class="QLabel" name="layerSelectionLabel">
            <property name="text">
             <string>Show layers:</string>
            </property>
           </widget>
          </item>
          <item row="1" column="1">
-          <widget class="QComboBox" name="cbxLayers">
+          <widget class="QComboBox" name="layerSelection">
            <item>
             <property name="text">
              <string>Visible layers</string>
@@ -236,7 +238,7 @@
           </widget>
          </item>
          <item row="2" column="1">
-          <widget class="QComboBox" name="cbxBands">
+          <widget class="QComboBox" name="bandSelection">
            <item>
             <property name="text">
              <string>All bands</string>
@@ -264,7 +266,7 @@
         </widget>
        </item>
        <item row="0" column="0">
-        <widget class="QCheckBox" name="cbxClick">
+        <widget class="QCheckBox" name="plotOnMove">
          <property name="toolTip">
           <string>Replaces active map tool. Use this to select a particular point or if plotting is slow (e.g. when using mpl Graph).</string>
          </property>
@@ -283,12 +285,12 @@
        <item row="4" column="0">
         <widget class="QLabel" name="setActiveLayerLabel">
          <property name="text">
-          <string>Select active layer by selection string:</string>
+          <string>Select layers by selection string:</string>
          </property>
         </widget>
        </item>
        <item row="5" column="0">
-        <layout class="QGridLayout" name="gridLayout">
+        <layout class="QGridLayout" name="selectStringGrid">
          <item row="0" column="0">
           <widget class="QLabel" name="selectionStringLabel">
            <property name="toolTip">
@@ -320,7 +322,7 @@
 &lt;/table&gt;&lt;/body&gt;&lt;/html&gt;</string>
            </property>
            <property name="text">
-            <string>*</string>
+            <string>??80290302014148[LG][LG]N*</string>
            </property>
           </widget>
          </item>
@@ -341,7 +343,7 @@
         </widget>
        </item>
        <item row="8" column="0">
-        <widget class="QTableWidget" name="selectionTableWidget">
+        <widget class="QTableWidget" name="selectionTable">
          <property name="editTriggers">
           <set>QAbstractItemView::NoEditTriggers</set>
          </property>
@@ -375,7 +377,7 @@
        </item>
       </layout>
      </widget>
-     <widget class="QWidget" name="tabWidgetPage4">
+     <widget class="QWidget" name="multitemporalTabWidget">
       <attribute name="title">
        <string>Time</string>
       </attribute>
@@ -406,7 +408,7 @@
           <bool>false</bool>
          </property>
          <property name="text">
-          <string>MYD09CMG.A2002186.005.%Y%j%H%M%S.hdf </string>
+          <string>MYD09CMG.A2002186.005.%Y%j%H%M%S</string>
          </property>
         </widget>
        </item>
