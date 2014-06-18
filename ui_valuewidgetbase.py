@@ -2,7 +2,7 @@
 
 # Form implementation generated from reading ui file 'ui_valuewidgetbase.ui'
 #
-# Created: Sun Jun 15 11:50:13 2014
+# Created: Wed Jun 18 18:53:52 2014
 #      by: PyQt4 UI code generator 4.10.3
 #
 # WARNING! All changes made in this file will be lost!
@@ -256,8 +256,9 @@ class Ui_ValueWidgetBase(object):
         self.minYLabel.setText(_translate("ValueWidgetBase", "Y min", None))
         self.maxYLabel.setText(_translate("ValueWidgetBase", "Y max", None))
         self.plotLibSelector.setToolTip(_translate("ValueWidgetBase", "Select plotting toolkit\n"
-"Qwt - Qwt toolkit (faster but soon unmaintained)\n"
-"mpl - matplotlib (slower but maintained)", None))
+"Qwt toolkit (faster but soon unmaintained)\n"
+"matplotlib (slower but maintained)\n"
+"PyQtGraph (fast but lacking some features)", None))
         self.tabWidget.setTabText(self.tabWidget.indexOf(self.tabWidgetPage2), _translate("ValueWidgetBase", "Graph", None))
         self.bandSelectionLabel.setText(_translate("ValueWidgetBase", "Show bands:", None))
         self.layerSelectionLabel.setText(_translate("ValueWidgetBase", "Show layers:", None))

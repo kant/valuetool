@@ -165,8 +165,9 @@
          </property>
          <property name="toolTip">
           <string>Select plotting toolkit
-Qwt - Qwt toolkit (faster but soon unmaintained)
-mpl - matplotlib (slower but maintained)</string>
+Qwt toolkit (faster but soon unmaintained)
+matplotlib (slower but maintained)
+PyQtGraph (fast but lacking some features)</string>
          </property>
         </widget>
        </item>

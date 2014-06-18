@@ -26,22 +26,27 @@ from PyQt4 import QtCore, QtGui
 from PyQt4.QtCore import *
 from PyQt4.QtGui import *
 from qgis.core import *
+from qgis.gui import QgsMessageBar
 
 import fnmatch  # Import filtering for Layernames
 import datetime  # for dealing with Multi-temporal data
 from distutils.version import StrictVersion
-import numpy as np
+from time_tracker import TimeTracker
 import time
+import operator
 
 from ui_valuewidgetbase import Ui_ValueWidgetBase as Ui_Widget
+
+# TODO: Get better debugging
+debug = 0
 
 has_qwt = True
 try:
     from PyQt4.Qwt5 import QwtPlot, QwtPlotCurve, QwtScaleDiv, QwtSymbol
-except:
+except ImportError:
     has_qwt = False
 
-#test if matplotlib >= 1.0
+# test if matplotlib >= 1.0
 has_mpl = True
 try:
     import matplotlib
@@ -49,72 +54,19 @@ try:
     import matplotlib.ticker as ticker
     import matplotlib.dates as dates
     from matplotlib.backends.backend_qt4agg import FigureCanvasQTAgg
-except:
-    has_mpl = StrictVersion(matplotlib.__version__) > StrictVersion('1.0.0')
-#if has_mpl:
-#    if int(matplotlib.__version__[0]) < 1:
-#        has_mpl = False
-
-# TODO: Get better debugging
-debug = 0
+    from matplotlib_customization import *
+    has_mpl = StrictVersion(matplotlib.__version__) >= StrictVersion('1.0.0')
+except ImportError:
+    has_mpl = False
 
 has_pyqtgraph = True
 try:
     import pyqtgraph as pg
-except:
-    has_pyqtgraph = StrictVersion(pyqtgraph.__version__) > StrictVersion(
-        '0.9.7')
-
-
-class DateAxis(pg.AxisItem):
-    def tickStrings(self, values, scale, spacing):
-        strns = []
-        rng = max(values)-min(values)
-        #if rng < 120:
-        #    return pg.AxisItem.tickStrings(self, values, scale, spacing)
-        if rng < 3600*24:
-            string = '%H:%M:%S'
-            label1 = '%b %d -'
-            label2 = ' %b %d, %Y'
-        elif rng >= 3600*24 and rng < 3600*24*30:
-            string = '%d'
-            label1 = '%b - '
-            label2 = '%b, %Y'
-        elif rng >= 3600*24*30 and rng < 3600*24*30*24:
-            string = '%b %y'
-            label1 = '%Y -'
-            label2 = ' %Y'
-        elif rng >=3600*24*30*24:
-            string = '%Y'
-            label1 = ''
-            label2 = ''
-        for x in values:
-            try:
-                strns.append(time.strftime(string, time.localtime(x)))
-            except ValueError:  ## Windows can't handle dates before 1970
-                strns.append('')
-        try:
-            label = time.strftime(label1, time.localtime(min(values)))+time.strftime(label2, time.localtime(max(values)))
-        except ValueError:
-            label = ''
-        #self.setLabel(text=label)
-        return strns
-
-class CustomViewBox(pg.ViewBox):
-    def __init__(self, *args, **kwds):
-        pg.ViewBox.__init__(self, *args, **kwds)
-        self.setMouseMode(self.RectMode)
-
-    ## reimplement right-click to zoom out
-    def mouseClickEvent(self, ev):
-        if ev.button() == QtCore.Qt.RightButton:
-            self.autoRange()
-
-    def mouseDragEvent(self, ev):
-        if ev.button() == QtCore.Qt.RightButton:
-            ev.ignore()
-        else:
-            pg.ViewBox.mouseDragEvent(self, ev)
+    from pyqtgraph_customization import DateTimeViewBox, DateTimeAxis
+    has_pyqtgraph = StrictVersion(pg.__version__) >= StrictVersion(
+        '0.9.8')
+except ImportError:
+    has_pyqtgraph = False
 
 
 class ValueWidget(QWidget, Ui_Widget):
@@ -139,6 +91,7 @@ class ValueWidget(QWidget, Ui_Widget):
 
         self.iface = iface
         self.canvas = self.iface.mapCanvas()
+        self.tracker = TimeTracker(self.canvas)
         self.legend = self.iface.legendInterface()
         self.logger = logging.getLogger('.'.join((__name__,
                                         self.__class__.__name__)))
@@ -149,7 +102,8 @@ class ValueWidget(QWidget, Ui_Widget):
             'plugins/valuetool/mouseClick', False, type=bool))
 
         # self.setupUi_plot()
-        # don't setup plot until Plot tab is clicked - workaround for bug #7450
+        # don't setup plot until Graph(1) tab is clicked - workaround for bug
+        # #7450
         # qgis will still crash in some cases, but at least the tool can be
         # used in Table mode
         self.qwtPlot = None
@@ -158,7 +112,7 @@ class ValueWidget(QWidget, Ui_Widget):
 
         QObject.connect(self.plotLibSelector,
                         SIGNAL("currentIndexChanged ( int )"),
-                        self.changePlot)
+                        self.change_plot)
         QObject.connect(self.tabWidget,
                         SIGNAL("currentChanged ( int )"),
                         self.tabWidgetChanged)
@@ -180,11 +134,15 @@ class ValueWidget(QWidget, Ui_Widget):
 
         self.setupUi_plot()
 
-    def setupUi_plot(self):
+    def need_message(self):
+            self.iface.messageBar().pushWidget(self.iface.messageBar(
+            ).createMessage(u'Valuetool cannot find any necessary '
+                            u'graphiclibrary for creating Graph. Please '
+                            u'install either Qwt >= 5.0 or matplotlib >= 1.0 '
+                            u'or PyQtGraph >= 0.9.8 'u'!'),
+                            QgsMessageBar.WARNING, 15)
 
-        need_library_message = QtGui.QLabel("Need Qwt >= 5.0 or "
-                                            "matplotlib >= 1.0 or "
-                                            "PyQtGraph > 0.9.8 !")
+    def setupUi_plot(self):
         # plot
         self.plotLibSelector.setVisible(False)
         self.enableStatistics.setVisible(False)
@@ -192,11 +150,12 @@ class ValueWidget(QWidget, Ui_Widget):
         self.enableStatistics.setChecked(True)
 
         plot_count = 0
+        self.mplLine = None  # make sure to invalidate when layers change
 
-        # Page 2 - qwt
-        if self.hasqwt:
+        if self.hasqwt:  # Page 2 - qwt
             self.plotLibSelector.addItem('Qwt')
             plot_count += 1
+
             self.qwtPlot = QwtPlot(self.stackedWidget)
             self.qwtPlot.setAutoFillBackground(False)
             self.qwtPlot.setObjectName("qwtPlot")
@@ -207,21 +166,20 @@ class ValueWidget(QWidget, Ui_Widget):
                           QPen(Qt.red, 2),
                           QSize(9, 9)))
             self.curve.attach(self.qwtPlot)
-        else:
-            self.qwtPlot = need_library_message
+            # Size Policy ???
+            sizePolicy = QtGui.QSizePolicy(QtGui.QSizePolicy.Expanding,
+                                           QtGui.QSizePolicy.Expanding)
+            sizePolicy.setHorizontalStretch(0)
+            sizePolicy.setVerticalStretch(0)
+            sizePolicy.setHeightForWidth(self.qwtPlot.sizePolicy().hasHeightForWidth())
+            self.qwtPlot.setSizePolicy(sizePolicy)
+            # Size Policy ???
 
-        sizePolicy = QtGui.QSizePolicy(QtGui.QSizePolicy.Expanding,
-                                       QtGui.QSizePolicy.Expanding)
-        sizePolicy.setHorizontalStretch(0)
-        sizePolicy.setVerticalStretch(0)
-        sizePolicy.setHeightForWidth(self.qwtPlot.sizePolicy().hasHeightForWidth())
-        self.qwtPlot.setSizePolicy(sizePolicy)
-        self.qwtPlot.updateGeometry()
-        self.stackedWidget.addWidget(self.qwtPlot)
+            self.qwtPlot.updateGeometry()
+            self.stackedWidget.addWidget(self.qwtPlot)
+            self.qtw_widgetnumber = self.stackedWidget.indexOf(self.qwtPlot)
 
-        #Page 3 - matplotlib
-        self.mplLine = None  # make sure to invalidate when layers change
-        if self.hasmpl:
+        if self.hasmpl:  # Page 3 - matplotlib
             self.plotLibSelector.addItem('matplotlib')
             plot_count += 1
             # mpl stuff
@@ -246,48 +204,91 @@ class ValueWidget(QWidget, Ui_Widget):
             self.pltCanvas.setAutoFillBackground(False)
             self.pltCanvas.setObjectName("mplPlot")
             self.mplPlot = self.pltCanvas
-        else:
-            self.mplPlot = need_library_message
 
-        sizePolicy = QtGui.QSizePolicy(QtGui.QSizePolicy.Expanding,
+            # Size Policy ???
+            sizePolicy = QtGui.QSizePolicy(QtGui.QSizePolicy.Expanding,
                                        QtGui.QSizePolicy.Expanding)
-        sizePolicy.setHorizontalStretch(0)
-        sizePolicy.setVerticalStretch(0)
-        sizePolicy.setHeightForWidth(self.mplPlot.sizePolicy().hasHeightForWidth())
-        self.mplPlot.setSizePolicy(sizePolicy)
-        self.mplPlot.updateGeometry()
-        self.stackedWidget.addWidget(self.mplPlot)
+            sizePolicy.setHorizontalStretch(0)
+            sizePolicy.setVerticalStretch(0)
+            sizePolicy.setHeightForWidth(self.mplPlot.sizePolicy().hasHeightForWidth())
+            self.mplPlot.setSizePolicy(sizePolicy)
+            # Size Policy ???
 
-        if self.haspqg:
+            self.mplPlot.updateGeometry()
+            self.stackedWidget.addWidget(self.mplPlot)
+            self.mpl_widgetnumber = self.stackedWidget.indexOf(self.mplPlot)
+
+        if self.haspqg:  # Page 3 - Configure how PyQtGraph should look like
             self.plotLibSelector.addItem('PyQtGraph')
             plot_count += 1
             # Setup PyQtGraph stuff
-            self.pqg_axis = DateAxis(orientation='bottom')
-            vb = CustomViewBox()
-            pg.setConfigOption('background', 'w')
-            pg.setConfigOption('foreground', 'k')
-            self.pqg_plot_widget = pg.PlotWidget(parent=self.stackedWidget,
-                                                 viewBox=vb, axisItems={
-                    'bottom': self.pqg_axis}, enableMenu=False, title="Kick my "
-                                                                   "balls")
-        else:
-            self.pqg_plot_widget = need_library_message
 
-        self.pqg_plot_widget.setSizePolicy(sizePolicy)
-        self.pqg_plot_widget.updateGeometry()
-        self.stackedWidget.addWidget(self.pqg_plot_widget)
+            #pg.setConfigOption('background', 'w')
+            #pg.setConfigOption('foreground', 'k')
+
+            #if self.mt_enabled:
+            #    self.pqg_axis = DateTimeAxis(orientation='bottom')
+            #    vb = DateTimeViewBox()
+            #    self.pqg_plot_widget = pg.PlotWidget(
+            #        parent=self.stackedWidget, viewBox=vb, axisItems={
+            # 'bottom': self.pqg_axis}, enableMenu=False, title="Kick my balls")
+            #else:
+            #    self.pqg_plot_widget = pg.PlotWidget(parent=self.stackedWidget)
+            self.pqg_axis = DateTimeAxis(orientation='bottom')
+            self.pqg_plot_widget = pg.PlotWidget(parent=self.stackedWidget,
+                                                axisItems={'bottom':
+                                                                self.pqg_axis})
+            
+            # Size Policy ???
+            self.pqg_plot_widget.setSizePolicy(sizePolicy)
+            # Size Policy ???
+
+            self.pqg_plot_widget.updateGeometry()
+            self.stackedWidget.addWidget(self.pqg_plot_widget)
+            self.pqg_widgetnumber = self.stackedWidget.indexOf(
+                self.pqg_plot_widget)
 
         if plot_count > 1:
             self.plotLibSelector.setEnabled(True)
             self.plotLibSelector.setVisible(True)
             self.plotLibSelector.setCurrentIndex(0)
-        else:
             if self.hasqwt:
-                self.plotLibSelector.setCurrentIndex(0)
+                self.plotLibSelector.setCurrentIndex(self.qwt_widgetnumber)
             elif self.hasmpl:
-                self.plotLibSelector.setCurrentIndex(1)
+                self.plotLibSelector.setCurrentIndex(self.mpl_widgetnumber)
             else:
-                self.plotLibSelector.setCurrentIndex(2)
+                self.plotLibSelector.setCurrentIndex(self.pqg_widgetnumber)
+            self.change_plot()
+        elif plot_count == 1:
+
+            #self.plotLibSelector.setEnabled(True)
+            #self.plotLibSelector.setVisible(True)
+
+            self.plotLibSelector.setCurrentIndex(0)
+            self.change_plot()
+        else:  # can only be 0 if nothing else matched
+            self.plot_message = QtGui.QLabel("Valuetool cannot find any "
+                                             "graphicslibrary for creating "
+                                             "Graph. Please install either "
+                                             "Qwt >= 5.0 or matplotlib >= "
+                                             "1.0 or PyQtGraph >= 0.9.8!")
+            self.plot_message.setWordWrap(True)
+            self.stackedWidget.addWidget(self.plot_message)
+
+            self.need_message()
+
+    def change_plot(self):
+        if self.stackedWidget.count() > 1:
+            if self.plotLibSelector.currentText() == 'Qwt':
+                self.stackedWidget.setCurrentIndex(self.qwt_widgetnumber)
+            elif self.plotLibSelector.currentText() == 'matplotlib':
+                self.stackedWidget.setCurrentIndex(self.mpl_widgetnumber)
+            elif self.plotLibSelector.currentText() == 'PyQtGraph':
+                self.stackedWidget.setCurrentIndex(self.pqg_widgetnumber)
+        elif self.stackedWidget.count() == 1:
+            self.stackedWidget.setCurrentIndex(0)
+        else:
+            self.stackedWidget.setCurrentIndex(-1)
 
     def keyPressEvent(self, e):
         if (e.modifiers() == Qt.ControlModifier or e.modifiers() == Qt.MetaModifier) and e.key() == Qt.Key_C:
@@ -299,15 +300,6 @@ class ValueWidget(QWidget, Ui_Widget):
                 clipboard.setText(items)
         else:
             QWidget.keyPressEvent(self, e)
-
-    def changePlot(self):
-        # TODO Add the magic for pyqtgraph here?
-        if self.plotLibSelector.currentText() == 'Qwt':
-            self.stackedWidget.setCurrentIndex(0)
-        elif self.plotLibSelector.currentText() == 'matplotlib':
-            self.stackedWidget.setCurrentIndex(1)
-        elif self.plotLibSelector.currentText() == 'PyQtGraph':
-            self.stackedWidget.setCurrentIndex(2)
 
     def changeActive(self, active, gui=True):
         self.isActive = active
@@ -514,7 +506,23 @@ class ValueWidget(QWidget, Ui_Widget):
                         if bandvalue is None:
                             bandvalue = "no data"
 
-                    tup = (layer_name_with_band, counter+1, str(bandvalue))
+                    # different x-Axis depending on if we want to use time or
+                    # not
+                    if self.mt_enabled:
+                        layer_time = self.tracker.get_time_for_layer(layer)
+                        if layer_time is None:
+                            continue
+                        else:
+                            # pyqtgraph enabled convert date to epoch
+                            graphlib = self.plotLibSelector.currentText()
+                            if graphlib == 'PyQtGraph':
+                                layer_time = time.mktime(
+                                    layer_time.timetuple())
+                                # overwrite
+                            tup = (layer_name_with_band, layer_time, str(bandvalue))
+                    else:
+                        tup = (layer_name_with_band, counter+1, str(bandvalue))
+
                     self.values.append(tup)
 
                     if need_extremum:
@@ -524,6 +532,8 @@ class ValueWidget(QWidget, Ui_Widget):
                             self.ymin = min(self.ymin, stats.minimumValue)
                             self.ymax = max(self.ymax, stats.maximumValue)
                     counter += 1
+
+        self.values.sort(key=operator.itemgetter(1))
 
         if len(self.values) == 0:
             self.labelStatus.setText(self.tr("No valid bands to display"))
@@ -614,12 +624,16 @@ class ValueWidget(QWidget, Ui_Widget):
 
     def plot(self):
         data_values = []
+        x_values = []
         if self.hasqwt or self.hasmpl or self.haspqg:
             for layername, xval, value in self.values:
+                x_values.append(xval)
                 try:
                     data_values.append(float(value))
-                except:
-                    data_values.append(0)
+                except ValueError:
+                    data_values.append(0)  # TODO Consider appending None
+                    # instead to not be plotted
+
 
         ymin = self.ymin
         ymax = self.ymax
@@ -627,37 +641,37 @@ class ValueWidget(QWidget, Ui_Widget):
         if self.leYMin.text() != '' and self.leYMax.text() != '':
             ymin = float(self.leYMin.text())
             ymax = float(self.leYMax.text())
+        else:
+            self.leYMin.setText(str(ymin))
+            self.leYMax.setText(str(ymax))
 
+        # Qwt Plot
         if self.hasqwt and (self.plotLibSelector.currentText() == 'Qwt'):
             self.qwtPlot.setAxisMaxMinor(QwtPlot.xBottom, 0)
             #self.qwtPlot.setAxisMaxMajor(QwtPlot.xBottom,0)
             self.qwtPlot.setAxisScale(QwtPlot.xBottom, 1, len(self.values))
-            #self.qwtPlot.setAxisScale(QwtPlot.yLeft,self.ymin,self.ymax)
+            #self.qwtPlot.setAxisScale(QwtPlot.yLeft, self.ymin, self.ymax)
             self.qwtPlot.setAxisScale(QwtPlot.yLeft, ymin, ymax)
             self.curve.setData(range(1, len(data_values)+1), data_values)
             self.qwtPlot.replot()
             self.qwtPlot.setVisible(len(data_values) > 0)
 
+        # PyQtGraph Plot
         elif self.haspqg and (self.plotLibSelector.currentText() ==
                                   'PyQtGraph'):
             self.pqg_plot_widget.clear()  # clean canvas on call
-            # draw with pyqtgraph test
-            if self.mt_enabled:
-                pg.setConfigOption('background', 'w')
-                pg.setConfigOption('foreground', 'k')
-                #for i in range(3):
-                 #   plotWidget.plot(x, y[i], pen=(i, 3))  ## setting pen=(i,
-                    # 3) automaticaly creates three different-colored pens
-                dates = np.arange(8) * (3600*24*356)
-                self.pqg_plot_widget.plot(x=dates, y=[1, 6, 2, 4, 3, 5, 6, 8],
-                                          symbol='o')
-                #self.pqg_plot_widget.show()
-            else:
-                xValues = []
-                for i in range(len(data_values)):
-                    xValues.append(1+i)
-                self.pqg_plot_widget.plot(xValues, data_values)
+            self.pqg_plot_widget.getPlotItem().setYRange(ymin, ymax)
 
+            if self.mt_enabled:
+                # TODO Set up bottom axis properly
+                # can be accessed with self.pqg_axis
+                pass
+            else:
+                pass
+            self.pqg_plot_widget.plot(x_values, data_values, symbol='o')
+
+
+        # matplotlib Plot
         elif self.hasmpl and (self.plotLibSelector.currentText() ==
                               'matplotlib'):
             self.mpl_subplot.clear()
@@ -665,60 +679,56 @@ class ValueWidget(QWidget, Ui_Widget):
             # If Multi-temporal Analysis enabled set xAxis away from Standard
             # 1 to values to dates.
             if self.mt_enabled:
-                # temporal Date creation
-                xValues = []
-                for i in range(len(data_values)):
-                    xValues.append(datetime.datetime(2014, 1, 1+i))
+                # Plot code from here
+                self.mpl_subplot.plot_date(x_values,
+                                           data_values,
+                                           'b-',
+                                           xdate=True,
+                                           ydate=False,
+                                           marker='o',
+                                           color='k',
+                                           mfc='b',
+                                           mec='b')
 
-                # Plotcode from here
-                self.mpl_subplot.plot_date(xValues,
-                            data_values,
-                            'b-',
-                            xdate=True,
-                            ydate=False,
-                            marker='o',
-                            color='k',
-                            mfc='b',
-                            mec='b')
+                # TODO move graphics configuration to a class
+                hours = dates.HourLocator()
+                days = dates.DayLocator()
+                years = dates.YearLocator()   # every year
+                months = dates.MonthLocator()  # every month
+                major_formatter = dates.DateFormatter('%b')
+                minor_formatter = dates.DateFormatter('%j')
+                self.mpl_subplot.xaxis.set_major_locator(months)
+                self.mpl_subplot.xaxis.set_major_formatter(major_formatter)
 
-                # hours = dates.HourLocator()
-                # days = dates.DayLocator()
-                # years = dates.YearLocator()   # every year
-                # months = dates.MonthLocator()  # every month
-                # major_formatter = dates.DateFormatter('%b')
-                # minor_formatter = dates.DateFormatter('%j')
-                # self.mpl_subplot.xaxis.set_major_locator(months)
-                # self.mpl_subplot.xaxis.set_major_formatter(major_formatter)
-                #
-                # self.mpl_subplot.xaxis.set_minor_locator(days)
-                # self.mpl_subplot.xaxis.set_minor_formatter(minor_formatter)
-                #
+                self.mpl_subplot.xaxis.set_minor_locator(days)
+                self.mpl_subplot.xaxis.set_minor_formatter(minor_formatter)
+
                 # labels = self.mpl_subplot.get_xticklabels()
                 # for label in labels:
                 #     label.set_rotation(45)
                 #     label.set_color('orange')
-
-                self.mplFig.autofmt_xdate()
-
-                self.mpl_subplot.set_xlim((min(xValues)-datetime.timedelta(
-                    hours=6), max(xValues)+datetime.timedelta(hours=6)))
-
+                #
+                # self.mplFig.autofmt_xdate()
+                # TODO figure out howto set min max dependend from either it
+                # is a integercount or a datetime value
+                min_date = min(x_values)-datetime.timedelta(hours=6)
+                max_date = max(x_values)+datetime.timedelta(hours=6)
+                self.mpl_subplot.set_xlim((min_date, max_date))
                 self.mpl_subplot.set_ylim((ymin, ymax))
             else:
-                xmin = 1
-                xmax = xmin + len(data_values)
-                xValues = range(xmin, xmax)
-                self.mpl_subplot.plot(xValues,
-                            data_values,
-                            marker='o',
-                            color='k',
-                            mfc='b',
-                            mec='b')
+                self.mpl_subplot.plot(x_values,
+                                      data_values,
+                                      marker='o',
+                                      color='k',
+                                      mfc='b',
+                                      mec='b')
 
                 self.mpl_subplot.xaxis.set_major_locator(ticker.MaxNLocator(
                     integer=True))
-                self.mpl_subplot.yaxis.set_minor_locator(ticker.AutoMinorLocator())
-                self.mpl_subplot.set_xlim((min(xValues)-0.25, max(xValues)+0.25))
+                self.mpl_subplot.yaxis.set_minor_locator(
+                    ticker.AutoMinorLocator())
+                self.mpl_subplot.set_xlim((min(x_values)-0.25,
+                                           max(x_values)+0.25))
                 self.mpl_subplot.set_ylim((ymin, ymax))
 
             self.mplFig.canvas.draw()
@@ -741,14 +751,14 @@ class ValueWidget(QWidget, Ui_Widget):
         self.invalidatePlot()
 
     def tabWidgetChanged(self):
-        #if self.tabWidget.currentIndex() == 1 and (self.hasmpl or self.haspqg):
-        #    self.setupUi_plot()
         if self.tabWidget.currentIndex() == 2:
             self.updateLayers()
 
     def on_mt_analysis_toggled(self, new_state):
         if new_state == 1:
             self.mt_enabled = True
+            if self.haspqg:
+                self.pqg_axis.setTimeEnabled(True)
             self.priorityLabel.setEnabled(True)
             self.extractionPriorityListWidget.setEnabled(True)
             self.patternLabel.setEnabled(True)
@@ -758,6 +768,8 @@ class ValueWidget(QWidget, Ui_Widget):
                                              "enabled!"))
         else:
             self.mt_enabled = False
+            if self.haspqg:
+                self.pqg_axis.setTimeEnabled(False)
             self.priorityLabel.setEnabled(False)
             self.extractionPriorityListWidget.setEnabled(False)
             self.patternLabel.setEnabled(False)
@@ -856,25 +868,25 @@ class ValueWidget(QWidget, Ui_Widget):
         self.layersSelected = []
         for i in range(0, self.selectionTable.rowCount()):
             item = self.selectionTable.item(i, 0)
-            layerID = self.selectionTable.item(i, 1).data(Qt.UserRole)
+            layer_id = self.selectionTable.item(i, 1).data(Qt.UserRole)
             if item and item.checkState() == Qt.Checked:
-                self.layersSelected.append(layerID)
-            elif layerID in self.layersSelected:
-                self.layersSelected.remove(layerID)
+                self.layersSelected.append(layer_id)
+            elif layer_id in self.layersSelected:
+                self.layersSelected.remove(layer_id)
 
     # slot for when active band selection has changed
     def bandSelected(self, action):
-        layerID = action.data()[0]
+        layer_id = action.data()[0]
         layerBand = action.data()[1]
         j = action.data()[2]
         toggleAll = action.data()[3]
-        activeBands = self.layerBands[layerID] if (layerID in
+        activeBands = self.layerBands[layer_id] if (layer_id in
                                                    self.layerBands) else []
 
         # special actions All/None
         if layerBand == -1:
             for layer in self.legend.layers():
-                if layer.id() == layerID:
+                if layer.id() == layer_id:
                     if toggleAll:
                         activeBands = range(1, layer.bandCount()+1)
                     else:
@@ -899,7 +911,7 @@ class ValueWidget(QWidget, Ui_Widget):
                     activeBands.remove(layerBand)
             activeBands.sort()
 
-        self.layerBands[layerID] = activeBands
+        self.layerBands[layer_id] = activeBands
 
         # update UI
         item = QTableWidgetItem(str(activeBands))

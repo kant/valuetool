@@ -30,13 +30,18 @@ import resources_rc
 
 
 def debug():
-    from pydev import pydevd
+    import pydevd
     pydevd.settrace('localhost', port=53100, stdoutToServer=True,
-                    stderrToServer=True)
+                    stderrToServer=True, suspend=False)
 
 
 class ValueTool:
     def __init__(self, iface):
+        # Enable debugging
+        try:
+            debug()
+        except:
+            print 'Debugger not enabled'
         # save reference to the QGIS interface
         self.iface = iface
         self.canvas = self.iface.mapCanvas()
@@ -99,12 +104,6 @@ class ValueTool:
         self.iface.removeToolBarIcon(self.action)
 
     def toggleTool(self, active):
-        # Enable debugging at Enabling the Tool
-        try:
-            debug()
-        except:
-            print 'Debugger not enabled'
-            pass
         self.activateTool() if active else self.deactivateTool()
 
     def toggleMouseClick(self, toggle):
