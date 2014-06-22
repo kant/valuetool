@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>330</width>
-    <height>373</height>
+    <height>388</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -30,7 +30,7 @@
       <enum>QTabWidget::North</enum>
      </property>
      <property name="currentIndex">
-      <number>0</number>
+      <number>3</number>
      </property>
      <widget class="QWidget" name="tabWidgetPage1">
       <attribute name="title">
@@ -120,24 +120,51 @@
            </widget>
           </item>
           <item>
+           <widget class="QCheckBox" name="yAutoCheckBox">
+            <property name="enabled">
+             <bool>true</bool>
+            </property>
+            <property name="text">
+             <string>Auto</string>
+            </property>
+            <property name="checked">
+             <bool>true</bool>
+            </property>
+           </widget>
+          </item>
+          <item>
            <widget class="QLabel" name="minYLabel">
+            <property name="enabled">
+             <bool>true</bool>
+            </property>
             <property name="text">
              <string>Y min</string>
             </property>
            </widget>
           </item>
           <item>
-           <widget class="QLineEdit" name="leYMin"/>
+           <widget class="QLineEdit" name="leYMin">
+            <property name="enabled">
+             <bool>false</bool>
+            </property>
+           </widget>
           </item>
           <item>
            <widget class="QLabel" name="maxYLabel">
+            <property name="enabled">
+             <bool>true</bool>
+            </property>
             <property name="text">
              <string>Y max</string>
             </property>
            </widget>
           </item>
           <item>
-           <widget class="QLineEdit" name="leYMax"/>
+           <widget class="QLineEdit" name="leYMax">
+            <property name="enabled">
+             <bool>false</bool>
+            </property>
+           </widget>
           </item>
           <item>
            <spacer name="horizontalSpacer_3">
@@ -173,6 +200,9 @@ PyQtGraph (fast but lacking some features)</string>
        </item>
        <item>
         <widget class="QStackedWidget" name="stackedWidget">
+         <property name="enabled">
+          <bool>true</bool>
+         </property>
          <property name="currentIndex">
           <number>-1</number>
          </property>
@@ -382,50 +412,7 @@ PyQtGraph (fast but lacking some features)</string>
       <attribute name="title">
        <string>Time</string>
       </attribute>
-      <layout class="QGridLayout" name="gridLayout_5">
-       <item row="1" column="0" colspan="2">
-        <widget class="QLabel" name="priorityLabel">
-         <property name="enabled">
-          <bool>false</bool>
-         </property>
-         <property name="text">
-          <string>Extract time from (highest priority on top):</string>
-         </property>
-        </widget>
-       </item>
-       <item row="3" column="0">
-        <widget class="QLabel" name="patternLabel">
-         <property name="enabled">
-          <bool>false</bool>
-         </property>
-         <property name="text">
-          <string>Pattern:</string>
-         </property>
-        </widget>
-       </item>
-       <item row="3" column="1">
-        <widget class="QLineEdit" name="patternLineEdit">
-         <property name="enabled">
-          <bool>false</bool>
-         </property>
-         <property name="text">
-          <string>MYD09CMG.A2002186.005.%Y%j%H%M%S</string>
-         </property>
-        </widget>
-       </item>
-       <item row="4" column="0" colspan="2">
-        <widget class="QCheckBox" name="writeMetaDataCheckBox">
-         <property name="enabled">
-          <bool>false</bool>
-         </property>
-         <property name="text">
-          <string>Write time to metadata (overwrite existing)</string>
-         </property>
-         <property name="checked">
-          <bool>true</bool>
-         </property>
-        </widget>
-       </item>
+      <layout class="QFormLayout" name="formLayout">
        <item row="0" column="0" colspan="2">
         <widget class="QCheckBox" name="enableMTAnalysesCheckBox">
          <property name="toolTip">
@@ -433,6 +420,16 @@ PyQtGraph (fast but lacking some features)</string>
          </property>
          <property name="text">
           <string>Enable multi-temporal analysis</string>
+         </property>
+        </widget>
+       </item>
+       <item row="1" column="0" colspan="2">
+        <widget class="QLabel" name="priorityLabel">
+         <property name="enabled">
+          <bool>false</bool>
+         </property>
+         <property name="text">
+          <string>Extract time from (highest priority on top):</string>
          </property>
         </widget>
        </item>
@@ -449,7 +446,7 @@ PyQtGraph (fast but lacking some features)</string>
          </property>
          <item>
           <property name="text">
-           <string>GDALPamDataset</string>
+           <string>XML</string>
           </property>
           <property name="checkState">
            <enum>Checked</enum>
@@ -468,7 +465,7 @@ PyQtGraph (fast but lacking some features)</string>
            <string>Exif</string>
           </property>
           <property name="checkState">
-           <enum>Checked</enum>
+           <enum>Unchecked</enum>
           </property>
          </item>
          <item>
@@ -476,9 +473,85 @@ PyQtGraph (fast but lacking some features)</string>
            <string>TIFF-Header</string>
           </property>
           <property name="checkState">
-           <enum>Checked</enum>
+           <enum>Unchecked</enum>
           </property>
          </item>
+        </widget>
+       </item>
+       <item row="3" column="0" colspan="2">
+        <widget class="QSpinBox" name="cutFirst">
+         <property name="suffix">
+          <string> characters</string>
+         </property>
+         <property name="prefix">
+          <string>Cut first </string>
+         </property>
+         <property name="maximum">
+          <number>999</number>
+         </property>
+        </widget>
+       </item>
+       <item row="4" column="0" colspan="2">
+        <widget class="QSpinBox" name="dateLength">
+         <property name="suffix">
+          <string> characters long</string>
+         </property>
+         <property name="prefix">
+          <string>Datestring is </string>
+         </property>
+         <property name="maximum">
+          <number>999</number>
+         </property>
+         <property name="value">
+          <number>0</number>
+         </property>
+        </widget>
+       </item>
+       <item row="5" column="0">
+        <widget class="QLabel" name="sampleLabel">
+         <property name="text">
+          <string>Sample</string>
+         </property>
+        </widget>
+       </item>
+       <item row="5" column="1">
+        <widget class="QLineEdit" name="sampleLineEdit">
+         <property name="readOnly">
+          <bool>true</bool>
+         </property>
+        </widget>
+       </item>
+       <item row="6" column="0">
+        <widget class="QLabel" name="patternLabel">
+         <property name="enabled">
+          <bool>false</bool>
+         </property>
+         <property name="text">
+          <string>Datepattern:</string>
+         </property>
+        </widget>
+       </item>
+       <item row="6" column="1">
+        <widget class="QLineEdit" name="patternLineEdit">
+         <property name="enabled">
+          <bool>false</bool>
+         </property>
+         <property name="text">
+          <string>%Y%j%H%M%S</string>
+         </property>
+        </widget>
+       </item>
+       <item row="7" column="0" colspan="2">
+        <widget class="QCheckBox" name="writeMetaDataCheckBox">
+         <property name="enabled">
+          <bool>false</bool>
+         </property>
+         <property name="text">
+          <string>Write time to metadata (overwrite existing)</string>
+         </property>
+         <property name="checked">
+          <bool>true</bool>
+         </property>
         </widget>
        </item>
       </layout>

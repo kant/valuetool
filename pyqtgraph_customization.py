@@ -47,7 +47,7 @@ class DateTimeAxis(pg.AxisItem):
             #    return pg.AxisItem.tickStrings(self, values, scale, spacing)
             if timerange < 3600*24:
                 string = '%H:%M:%S'
-                label1 = '%b %d -'
+                label1 = '%b %d  %Y -'
                 label2 = ' %b %d, %Y'
             elif 3600*24 <= timerange < 3600*24*30:
                 string = '%d %H:%M'
@@ -64,7 +64,7 @@ class DateTimeAxis(pg.AxisItem):
             for x in values:
                 try:
                     strns.append(time.strftime(string, time.localtime(x)))
-                except ValueError:  ## Windows can't handle dates before 1970
+                except ValueError:  # Windows can't handle dates before 1970
                     strns.append('')
             try:
                 #label = time.strftime(label1, time.localtime(min(
@@ -79,7 +79,7 @@ class DateTimeAxis(pg.AxisItem):
             for val in values:
                 try:
                     strns.append('%.0f' % val)
-                except ValueError:  ## Windows can't handle dates before 1970
+                except ValueError:  # Windows can't handle dates before 1970
                     strns.append('')
             self.setLabel(text='')
             return strns

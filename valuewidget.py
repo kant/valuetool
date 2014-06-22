@@ -91,21 +91,27 @@ class ValueWidget(QWidget, Ui_Widget):
 
         self.iface = iface
         self.canvas = self.iface.mapCanvas()
-        self.tracker = TimeTracker(self.canvas)
+
         self.legend = self.iface.legendInterface()
         self.logger = logging.getLogger('.'.join((__name__,
                                         self.__class__.__name__)))
+
         QWidget.__init__(self)
         self.setupUi(self)
         self.tabWidget.setEnabled(False)
         self.plotOnMove.setChecked(QSettings().value(
             'plugins/valuetool/mouseClick', False, type=bool))
 
+        self.leYMin.setText(str(self.ymin))
+        self.leYMax.setText(str(self.ymax))
+        self.tracker = TimeTracker(self, self.canvas)
+
         # self.setupUi_plot()
         # don't setup plot until Graph(1) tab is clicked - workaround for bug
         # #7450
         # qgis will still crash in some cases, but at least the tool can be
         # used in Table mode
+
         self.qwtPlot = None
         self.mplPlot = None
         self.mplLine = None
@@ -131,16 +137,27 @@ class ValueWidget(QWidget, Ui_Widget):
         QObject.connect(self.selectionStringLineEdit,
                         SIGNAL("textChanged(QString)"),
                         self.updateLayers)
+        QObject.connect(self.yAutoCheckBox,
+                        SIGNAL("toggled ( bool )"),
+                        self.yAutoCheckBoxEnabled)
 
         self.setupUi_plot()
 
-    def need_message(self):
+
+    def yAutoCheckBoxEnabled(self, state):
+        # User has toggled automatic (default) ymin/max values
+        if state == 1:
+            self.leYMin.setEnabled(False)
+            self.leYMax.setEnabled(False)
+            self.leYMin.setText( str(self.ymin) )
+            self.leYMax.setText( str(self.ymax) )
+        else:
+            self.leYMin.setEnabled(True)
+            self.leYMax.setEnabled(True)
+
+    def pop_messagebar(self, text):
             self.iface.messageBar().pushWidget(self.iface.messageBar(
-            ).createMessage(u'Valuetool cannot find any necessary '
-                            u'graphiclibrary for creating Graph. Please '
-                            u'install either Qwt >= 5.0 or matplotlib >= 1.0 '
-                            u'or PyQtGraph >= 0.9.8 'u'!'),
-                            QgsMessageBar.WARNING, 15)
+            ).createMessage(text), QgsMessageBar.WARNING, 5)
 
     def setupUi_plot(self):
         # plot
@@ -155,7 +172,7 @@ class ValueWidget(QWidget, Ui_Widget):
         if self.hasqwt:  # Page 2 - qwt
             self.plotLibSelector.addItem('Qwt')
             plot_count += 1
-
+            # Setup Qwt Plot Area in Widget
             self.qwtPlot = QwtPlot(self.stackedWidget)
             self.qwtPlot.setAutoFillBackground(False)
             self.qwtPlot.setObjectName("qwtPlot")
@@ -167,6 +184,7 @@ class ValueWidget(QWidget, Ui_Widget):
                           QSize(9, 9)))
             self.curve.attach(self.qwtPlot)
             # Size Policy ???
+            # FIXME Test on Qwt
             sizePolicy = QtGui.QSizePolicy(QtGui.QSizePolicy.Expanding,
                                            QtGui.QSizePolicy.Expanding)
             sizePolicy.setHorizontalStretch(0)
@@ -222,9 +240,8 @@ class ValueWidget(QWidget, Ui_Widget):
             self.plotLibSelector.addItem('PyQtGraph')
             plot_count += 1
             # Setup PyQtGraph stuff
-
-            #pg.setConfigOption('background', 'w')
-            #pg.setConfigOption('foreground', 'k')
+            pg.setConfigOption('background', 'w')
+            pg.setConfigOption('foreground', 'k')
 
             #if self.mt_enabled:
             #    self.pqg_axis = DateTimeAxis(orientation='bottom')
@@ -260,22 +277,17 @@ class ValueWidget(QWidget, Ui_Widget):
                 self.plotLibSelector.setCurrentIndex(self.pqg_widgetnumber)
             self.change_plot()
         elif plot_count == 1:
-
-            #self.plotLibSelector.setEnabled(True)
-            #self.plotLibSelector.setVisible(True)
-
             self.plotLibSelector.setCurrentIndex(0)
             self.change_plot()
         else:  # can only be 0 if nothing else matched
-            self.plot_message = QtGui.QLabel("Valuetool cannot find any "
-                                             "graphicslibrary for creating "
-                                             "Graph. Please install either "
-                                             "Qwt >= 5.0 or matplotlib >= "
-                                             "1.0 or PyQtGraph >= 0.9.8!")
+            message_text = "Valuetool cannot find any graphicslibrary for " \
+                           "creating Graph. Please install either Qwt >= 5.0 " \
+                           "or matplotlib >= 1.0 or PyQtGraph >= 0.9.8!"
+            self.plot_message = QtGui.QLabel(message_text)
             self.plot_message.setWordWrap(True)
             self.stackedWidget.addWidget(self.plot_message)
 
-            self.need_message()
+            self.pop_messagebar(message_text)
 
     def change_plot(self):
         if self.stackedWidget.count() > 1:
@@ -326,7 +338,7 @@ class ValueWidget(QWidget, Ui_Widget):
             self.tabWidget.setEnabled(active)
             if active:
                 self.labelStatus.setText(self.tr("Value tool is enabled!"))
-                if self.tabWidget.currentIndex() == 2:
+                if self.tabWidget.currentIndex() == 2:  # FIXME WHY only on 2?
                     self.updateLayers()
             else:
                 self.labelStatus.setText(self.tr(""))
@@ -397,10 +409,12 @@ class ValueWidget(QWidget, Ui_Widget):
 
         if len(layers) == 0:
             if self.canvas.layerCount() > 0:
-                self.labelStatus.setText(self.tr("No valid layers to display "
-                                                 "- change layers in Options"))
+                text = self.tr("Value Tool: No valid layers to display - "
+                               "add Rasterlayers")
+                self.pop_messagebar(text)
             else:
-                self.labelStatus.setText(self.tr("No valid layers to display"))
+                text = self.tr("Value Tool: No valid layers to display")
+                self.pop_messagebar(text)
             self.values = []
             self.showValues()
             return
@@ -533,6 +547,11 @@ class ValueWidget(QWidget, Ui_Widget):
                             self.ymax = max(self.ymax, stats.maximumValue)
                     counter += 1
 
+        # Update the ymin, ymax line edits if required
+        if self.yAutoCheckBox.isChecked():
+            self.leYMin.setText( str(self.ymin) )
+            self.leYMax.setText( str(self.ymax) )
+
         self.values.sort(key=operator.itemgetter(1))
 
         if len(self.values) == 0:
@@ -542,7 +561,10 @@ class ValueWidget(QWidget, Ui_Widget):
 
     def showValues(self):
         if self.tabWidget.currentIndex() == 1:
-            #TODO don't plot if there is no data to plot...
+            #if len(self.values) == 0:
+            #    # FIXME don't plot if there is no data to plot...
+            #    # FIXME possible IF there are no rasterlayers loaded?
+            #    return
             self.plot()
         else:
             self.printInTable()
@@ -632,18 +654,20 @@ class ValueWidget(QWidget, Ui_Widget):
                     data_values.append(float(value))
                 except ValueError:
                     data_values.append(0)  # TODO Consider appending None
-                    # instead to not be plotted
+                    # instead to not be plotted, be aware of min()
+                    # calculation in plotting range
 
-
-        ymin = self.ymin
-        ymax = self.ymax
-
-        if self.leYMin.text() != '' and self.leYMax.text() != '':
-            ymin = float(self.leYMin.text())
-            ymax = float(self.leYMax.text())
+        if self.yAutoCheckBox.isChecked():
+            ymin = self.ymin
+            ymax = self.ymax
         else:
-            self.leYMin.setText(str(ymin))
-            self.leYMax.setText(str(ymax))
+            # Beware the user may not have entered a number
+            try:
+                ymin = float( self.leYMin.text() )
+                ymax = float( self.leYMax.text() )
+            except ValueError:
+                # TODO Print error to user
+                return
 
         # Qwt Plot
         if self.hasqwt and (self.plotLibSelector.currentText() == 'Qwt'):
@@ -711,9 +735,9 @@ class ValueWidget(QWidget, Ui_Widget):
                 # self.mplFig.autofmt_xdate()
                 # TODO figure out howto set min max dependend from either it
                 # is a integercount or a datetime value
-                min_date = min(x_values)-datetime.timedelta(hours=6)
-                max_date = max(x_values)+datetime.timedelta(hours=6)
-                self.mpl_subplot.set_xlim((min_date, max_date))
+                # min_date = min(x_values)-datetime.timedelta(hours=6)
+                # max_date = max(x_values)+datetime.timedelta(hours=6)
+                # self.mpl_subplot.set_xlim((min_date, max_date))
                 self.mpl_subplot.set_ylim((ymin, ymax))
             else:
                 self.mpl_subplot.plot(x_values,
@@ -759,6 +783,7 @@ class ValueWidget(QWidget, Ui_Widget):
             self.mt_enabled = True
             if self.haspqg:
                 self.pqg_axis.setTimeEnabled(True)
+            self.tracker.enable_selection()
             self.priorityLabel.setEnabled(True)
             self.extractionPriorityListWidget.setEnabled(True)
             self.patternLabel.setEnabled(True)
@@ -766,6 +791,11 @@ class ValueWidget(QWidget, Ui_Widget):
             self.writeMetaDataCheckBox.setEnabled(True)
             self.labelStatus.setText(self.tr("Multi-temporal analysis "
                                              "enabled!"))
+            self.cutFirst.setEnabled(True)
+            self.dateLength.setEnabled(True)
+            self.sampleLineEdit.setEnabled(True)
+            self.sampleLabel.setEnabled(True)
+            self.tracker.refresh_tracker()  # Only call when mt_enabled
         else:
             self.mt_enabled = False
             if self.haspqg:
@@ -776,6 +806,11 @@ class ValueWidget(QWidget, Ui_Widget):
             self.patternLineEdit.setEnabled(False)
             self.writeMetaDataCheckBox.setEnabled(False)
             self.labelStatus.setText(self.tr(""))
+            self.cutFirst.setEnabled(False)
+            self.dateLength.setEnabled(False)
+            self.sampleLineEdit.setEnabled(False)
+            self.sampleLabel.setEnabled(False)
+            self.tracker.disable_selection()
 
     def name_matches_filter(self, name):
         selection_string = self.selectionStringLineEdit.text()
@@ -822,7 +857,8 @@ class ValueWidget(QWidget, Ui_Widget):
             self.selectionTable.setItem(j, 1, item)
             activeBands = self.activeBandsForRaster(layer)
             button = QToolButton()
-            button.setText("#")  # TODO add edit? icon
+            button.setIcon(QtGui.QIcon(':/plugins/valuetool/bands.jpg'))
+            #button.setIconSize(QtCore.QSize(400, 400))
             button.setPopupMode(QToolButton.InstantPopup)
             group = QActionGroup(button)
             group.setExclusive(False)
@@ -856,7 +892,7 @@ class ValueWidget(QWidget, Ui_Widget):
             item = QTableWidgetItem(str(activeBands))
             item.setToolTip(str(activeBands))
             self.selectionTable.setItem(j, 3, item)
-            j = j + 1
+            j += 1
 
         self.selectionTable.blockSignals(False)
 
