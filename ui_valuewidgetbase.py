@@ -2,7 +2,7 @@
 
 # Form implementation generated from reading ui file 'ui_valuewidgetbase.ui'
 #
-# Created: Sun Jun 22 11:24:17 2014
+# Created: Tue Jun 24 14:28:55 2014
 #      by: PyQt4 UI code generator 4.10.3
 #
 # WARNING! All changes made in this file will be lost!
@@ -262,7 +262,7 @@ class Ui_ValueWidgetBase(object):
         self.verticalLayout.addWidget(self.labelStatus)
 
         self.retranslateUi(ValueWidgetBase)
-        self.tabWidget.setCurrentIndex(3)
+        self.tabWidget.setCurrentIndex(2)
         self.stackedWidget.setCurrentIndex(-1)
         QtCore.QMetaObject.connectSlotsByName(ValueWidgetBase)
 
@@ -279,6 +279,7 @@ class Ui_ValueWidgetBase(object):
         self.tabWidget.setTabText(self.tabWidget.indexOf(self.tabWidgetPage1), _translate("ValueWidgetBase", "Table", None))
         self.enableStatistics.setToolTip(_translate("ValueWidgetBase", "Compute min/max when layers are loaded", None))
         self.enableStatistics.setText(_translate("ValueWidgetBase", "Stats", None))
+        self.yAutoCheckBox.setToolTip(_translate("ValueWidgetBase", "Autozoom to min and max of all loaded values", None))
         self.yAutoCheckBox.setText(_translate("ValueWidgetBase", "Auto", None))
         self.minYLabel.setText(_translate("ValueWidgetBase", "Y min", None))
         self.maxYLabel.setText(_translate("ValueWidgetBase", "Y max", None))
@@ -347,6 +348,6 @@ class Ui_ValueWidgetBase(object):
         self.sampleLabel.setText(_translate("ValueWidgetBase", "Sample", None))
         self.patternLabel.setText(_translate("ValueWidgetBase", "Datepattern:", None))
         self.patternLineEdit.setText(_translate("ValueWidgetBase", "%Y%j%H%M%S", None))
-        self.writeMetaDataCheckBox.setText(_translate("ValueWidgetBase", "Write time to metadata (overwrite existing)", None))
+        self.writeMetaDataCheckBox.setText(_translate("ValueWidgetBase", "Write time to metadata (XML)", None))
         self.tabWidget.setTabText(self.tabWidget.indexOf(self.multitemporalTabWidget), _translate("ValueWidgetBase", "Time", None))
 

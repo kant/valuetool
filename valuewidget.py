@@ -54,7 +54,7 @@ try:
     import matplotlib.ticker as ticker
     import matplotlib.dates as dates
     from matplotlib.backends.backend_qt4agg import FigureCanvasQTAgg
-    from matplotlib_customization import *
+    from matplotlib_customization import MplSettings
     has_mpl = StrictVersion(matplotlib.__version__) >= StrictVersion('1.0.0')
 except ImportError:
     has_mpl = False
@@ -78,7 +78,7 @@ class ValueWidget(QWidget, Ui_Widget):
         self.layerMap = dict()
         self.statsChecked = False
         self.ymin = 0
-        self.ymax = 250
+        self.ymax = 365
         self.isActive = False
         self.mt_enabled = False
 
@@ -104,7 +104,9 @@ class ValueWidget(QWidget, Ui_Widget):
 
         self.leYMin.setText(str(self.ymin))
         self.leYMax.setText(str(self.ymax))
+
         self.tracker = TimeTracker(self, self.canvas)
+        self.mpl_cust = MplSettings(self, self.canvas)
 
         # self.setupUi_plot()
         # don't setup plot until Graph(1) tab is clicked - workaround for bug
@@ -183,8 +185,8 @@ class ValueWidget(QWidget, Ui_Widget):
                           QPen(Qt.red, 2),
                           QSize(9, 9)))
             self.curve.attach(self.qwtPlot)
+
             # Size Policy ???
-            # FIXME Test on Qwt
             sizePolicy = QtGui.QSizePolicy(QtGui.QSizePolicy.Expanding,
                                            QtGui.QSizePolicy.Expanding)
             sizePolicy.setHorizontalStretch(0)
@@ -195,75 +197,44 @@ class ValueWidget(QWidget, Ui_Widget):
 
             self.qwtPlot.updateGeometry()
             self.stackedWidget.addWidget(self.qwtPlot)
-            self.qtw_widgetnumber = self.stackedWidget.indexOf(self.qwtPlot)
+            self.qwt_widgetnumber = self.stackedWidget.indexOf(self.qwtPlot)
 
-        if self.hasmpl:  # Page 3 - matplotlib
+        if self.hasmpl:  # Page 3 -  setup matplotlib
             self.plotLibSelector.addItem('matplotlib')
             plot_count += 1
-            # mpl stuff
-            # should make figure light gray
             self.mplBackground = None
             # http://www.scipy.org/Cookbook/Matplotlib/Animations
-            self.mplFig = plt.Figure(facecolor='w', edgecolor='w')
-            self.mplFig.subplots_adjust(left=0.1,
-                                        right=0.975,
-                                        bottom=0.13,
-                                        top=0.95)
+            self.mplFig = plt.Figure(facecolor='w',
+                                     edgecolor='g',
+                                     linewidth=0.0)
+
             self.mpl_subplot = self.mplFig.add_subplot(111)
-            self.mpl_subplot.tick_params(axis='both',
-                                         which='major',
-                                         labelsize=12)
-            self.mpl_subplot.tick_params(axis='both',
-                                         which='minor',
-                                         labelsize=10)
-            # qt stuff
             self.pltCanvas = FigureCanvasQTAgg(self.mplFig)
             self.pltCanvas.setParent(self.stackedWidget)
             self.pltCanvas.setAutoFillBackground(False)
             self.pltCanvas.setObjectName("mplPlot")
             self.mplPlot = self.pltCanvas
-
-            # Size Policy ???
-            sizePolicy = QtGui.QSizePolicy(QtGui.QSizePolicy.Expanding,
-                                       QtGui.QSizePolicy.Expanding)
-            sizePolicy.setHorizontalStretch(0)
-            sizePolicy.setVerticalStretch(0)
-            sizePolicy.setHeightForWidth(self.mplPlot.sizePolicy().hasHeightForWidth())
-            self.mplPlot.setSizePolicy(sizePolicy)
-            # Size Policy ???
-
             self.mplPlot.updateGeometry()
             self.stackedWidget.addWidget(self.mplPlot)
             self.mpl_widgetnumber = self.stackedWidget.indexOf(self.mplPlot)
 
-        if self.haspqg:  # Page 3 - Configure how PyQtGraph should look like
+        if self.haspqg:  # Page 3 - setup PyQtGraph
             self.plotLibSelector.addItem('PyQtGraph')
             plot_count += 1
             # Setup PyQtGraph stuff
             pg.setConfigOption('background', 'w')
             pg.setConfigOption('foreground', 'k')
-
-            #if self.mt_enabled:
-            #    self.pqg_axis = DateTimeAxis(orientation='bottom')
-            #    vb = DateTimeViewBox()
-            #    self.pqg_plot_widget = pg.PlotWidget(
-            #        parent=self.stackedWidget, viewBox=vb, axisItems={
-            # 'bottom': self.pqg_axis}, enableMenu=False, title="Kick my balls")
-            #else:
-            #    self.pqg_plot_widget = pg.PlotWidget(parent=self.stackedWidget)
             self.pqg_axis = DateTimeAxis(orientation='bottom')
             self.pqg_plot_widget = pg.PlotWidget(parent=self.stackedWidget,
-                                                axisItems={'bottom':
-                                                                self.pqg_axis})
-            
-            # Size Policy ???
-            self.pqg_plot_widget.setSizePolicy(sizePolicy)
-            # Size Policy ???
-
+                                                 axisItems={'bottom':
+                                                 self.pqg_axis})
+            self.pqg_plot_item = self.pqg_plot_widget.getPlotItem()
             self.pqg_plot_widget.updateGeometry()
             self.stackedWidget.addWidget(self.pqg_plot_widget)
             self.pqg_widgetnumber = self.stackedWidget.indexOf(
                 self.pqg_plot_widget)
+            # on zoom change do:
+            self.pqg_plot_item.sigXRangeChanged.connect(self.refresh_ticks)
 
         if plot_count > 1:
             self.plotLibSelector.setEnabled(True)
@@ -524,18 +495,23 @@ class ValueWidget(QWidget, Ui_Widget):
                     # not
                     if self.mt_enabled:
                         layer_time = self.tracker.get_time_for_layer(layer)
+
                         if layer_time is None:
                             continue
                         else:
                             # pyqtgraph enabled convert date to epoch
                             graphlib = self.plotLibSelector.currentText()
+
                             if graphlib == 'PyQtGraph':
-                                layer_time = time.mktime(
-                                    layer_time.timetuple())
+                                layer_time = time.mktime(layer_time.timetuple())
                                 # overwrite
-                            tup = (layer_name_with_band, layer_time, str(bandvalue))
+                            tup = (layer_name_with_band,
+                                   layer_time,
+                                   str(bandvalue))
                     else:
-                        tup = (layer_name_with_band, counter+1, str(bandvalue))
+                        tup = (layer_name_with_band,
+                               counter+1,
+                               str(bandvalue))
 
                     self.values.append(tup)
 
@@ -549,8 +525,8 @@ class ValueWidget(QWidget, Ui_Widget):
 
         # Update the ymin, ymax line edits if required
         if self.yAutoCheckBox.isChecked():
-            self.leYMin.setText( str(self.ymin) )
-            self.leYMax.setText( str(self.ymax) )
+            self.leYMin.setText(str(self.ymin))
+            self.leYMax.setText(str(self.ymax))
 
         self.values.sort(key=operator.itemgetter(1))
 
@@ -563,7 +539,6 @@ class ValueWidget(QWidget, Ui_Widget):
         if self.tabWidget.currentIndex() == 1:
             #if len(self.values) == 0:
             #    # FIXME don't plot if there is no data to plot...
-            #    # FIXME possible IF there are no rasterlayers loaded?
             #    return
             self.plot()
         else:
@@ -644,6 +619,65 @@ class ValueWidget(QWidget, Ui_Widget):
             self.valueTable.item(irow, 1).setText(value)
             irow += 1
 
+    def refresh_ticks(self):
+        # At this point the X extent has been changed (e.g. zoom) and we need
+        #  to redraw ticks and associated labels
+        major_tick_times = []
+        # define label width as minimum label distance readable
+        label_width = 40
+
+        # First determine what visible x range we are looking at
+        view_min_x = self.pqg_plot_item.getViewBox().viewRange()[0][0]
+        view_max_x = self.pqg_plot_item.getViewBox().viewRange()[0][1]
+        min_date_axis = datetime.datetime.fromtimestamp(view_min_x)
+
+        view_range = view_max_x - view_min_x
+
+        # Determine the current width of the plot in px
+        rect_bound = self.pqg_plot_item.viewGeometry()
+        width = rect_bound.width()
+
+        major_label_count = (width - label_width) // label_width
+
+        major_label_spacing = view_range // (major_label_count * 3600.0 * 24
+                                             * 365.25)  # In major tick units
+
+        min_tick_to_label_int = int(datetime.datetime.strftime(min_date_axis, '%Y')) + 1
+
+        major_label_spacing_delta = view_range / major_label_count
+
+        min_tick_to_label_stamp = (datetime.datetime(min_tick_to_label_int, 1, 1) - datetime.datetime(1970, 1, 1)).total_seconds()
+
+        major_tick_times.append((int(min_tick_to_label_stamp),
+                                 str(datetime.datetime.fromtimestamp(
+                                     min_tick_to_label_stamp).strftime('%Y'))))
+
+        next_tick_to_label_int = int((datetime.datetime(
+                                      min_tick_to_label_int, 1,
+                                      1) - datetime.datetime(
+                                      1970, 1, 1)).total_seconds())
+
+        next_tick_to_label_stamp = min_tick_to_label_stamp
+
+        while True:
+            next_tick_to_label_int += int(major_label_spacing_delta)
+            next_tick_to_label_stamp += major_label_spacing_delta
+
+            if next_tick_to_label_int > int(view_max_x):
+                break
+            major_tick_times.append((next_tick_to_label_int,
+                                     str(datetime.datetime.fromtimestamp(
+                                     next_tick_to_label_stamp).strftime('%Y'))))
+        # An experiment
+        # ticks = [
+        #
+        #      [(631152000.34, '1990'), (788918400, '1995')],
+        #
+        #      [(662688000, '1991'), (694224000.46, '1992'), (725846400, '1993'),
+        #       (757382400, '1994')]
+        # ]
+        self.pqg_axis.setTicks([major_tick_times])
+
     def plot(self):
         data_values = []
         x_values = []
@@ -655,7 +689,8 @@ class ValueWidget(QWidget, Ui_Widget):
                 except ValueError:
                     data_values.append(0)  # TODO Consider appending None
                     # instead to not be plotted, be aware of min()
-                    # calculation in plotting range
+                    # calculation in plotting range = affects graphs (check
+                    # there?
 
         if self.yAutoCheckBox.isChecked():
             ymin = self.ymin
@@ -663,42 +698,36 @@ class ValueWidget(QWidget, Ui_Widget):
         else:
             # Beware the user may not have entered a number
             try:
-                ymin = float( self.leYMin.text() )
-                ymax = float( self.leYMax.text() )
+                ymin = float(self.leYMin.text())
+                ymax = float(self.leYMax.text())
             except ValueError:
-                # TODO Print error to user
+                message = 'Valuetool: Please enter Numbers!'
+                self.pop_messagebar(message)
                 return
 
         # Qwt Plot
         if self.hasqwt and (self.plotLibSelector.currentText() == 'Qwt'):
-            self.qwtPlot.setAxisMaxMinor(QwtPlot.xBottom, 0)
-            #self.qwtPlot.setAxisMaxMajor(QwtPlot.xBottom,0)
-            self.qwtPlot.setAxisScale(QwtPlot.xBottom, 1, len(self.values))
-            #self.qwtPlot.setAxisScale(QwtPlot.yLeft, self.ymin, self.ymax)
-            self.qwtPlot.setAxisScale(QwtPlot.yLeft, ymin, ymax)
-            self.curve.setData(range(1, len(data_values)+1), data_values)
-            self.qwtPlot.replot()
-            self.qwtPlot.setVisible(len(data_values) > 0)
-
-        # PyQtGraph Plot
-        elif self.haspqg and (self.plotLibSelector.currentText() ==
-                                  'PyQtGraph'):
-            self.pqg_plot_widget.clear()  # clean canvas on call
-            self.pqg_plot_widget.getPlotItem().setYRange(ymin, ymax)
-
             if self.mt_enabled:
-                # TODO Set up bottom axis properly
-                # can be accessed with self.pqg_axis
-                pass
+                message = 'Valuetool: We currently do not support Date ' \
+                          'values when using Qwt as plot library'
+                self.pop_messagebar(message)
             else:
-                pass
-            self.pqg_plot_widget.plot(x_values, data_values, symbol='o')
-
+                self.qwtPlot.setAxisMaxMinor(QwtPlot.xBottom, 0)
+                #self.qwtPlot.setAxisMaxMajor(QwtPlot.xBottom,0)
+                self.qwtPlot.setAxisScale(QwtPlot.xBottom, 1, len(self.values))
+                #self.qwtPlot.setAxisScale(QwtPlot.yLeft, self.ymin, self.ymax)
+                self.qwtPlot.setAxisScale(QwtPlot.yLeft, ymin, ymax)
+                self.curve.setData(range(1, len(data_values)+1), data_values)
+                self.qwtPlot.replot()
+                self.qwtPlot.setVisible(len(data_values) > 0)
 
         # matplotlib Plot
         elif self.hasmpl and (self.plotLibSelector.currentText() ==
                               'matplotlib'):
+            # dont clear to draw another row of data
             self.mpl_subplot.clear()
+
+            self.mpl_cust.mpl_setup()
 
             # If Multi-temporal Analysis enabled set xAxis away from Standard
             # 1 to values to dates.
@@ -713,49 +742,29 @@ class ValueWidget(QWidget, Ui_Widget):
                                            color='k',
                                            mfc='b',
                                            mec='b')
-
-                # TODO move graphics configuration to a class
-                hours = dates.HourLocator()
-                days = dates.DayLocator()
-                years = dates.YearLocator()   # every year
-                months = dates.MonthLocator()  # every month
-                major_formatter = dates.DateFormatter('%b')
-                minor_formatter = dates.DateFormatter('%j')
-                self.mpl_subplot.xaxis.set_major_locator(months)
-                self.mpl_subplot.xaxis.set_major_formatter(major_formatter)
-
-                self.mpl_subplot.xaxis.set_minor_locator(days)
-                self.mpl_subplot.xaxis.set_minor_formatter(minor_formatter)
-
-                # labels = self.mpl_subplot.get_xticklabels()
-                # for label in labels:
-                #     label.set_rotation(45)
-                #     label.set_color('orange')
-                #
-                # self.mplFig.autofmt_xdate()
-                # TODO figure out howto set min max dependend from either it
-                # is a integercount or a datetime value
-                # min_date = min(x_values)-datetime.timedelta(hours=6)
-                # max_date = max(x_values)+datetime.timedelta(hours=6)
-                # self.mpl_subplot.set_xlim((min_date, max_date))
-                self.mpl_subplot.set_ylim((ymin, ymax))
+                plt.xticks(rotation='vertical')
+                self.mpl_cust.mpl_date_settings(x_values, ymin, ymax)
             else:
                 self.mpl_subplot.plot(x_values,
                                       data_values,
+                                      'b-',
                                       marker='o',
                                       color='k',
                                       mfc='b',
                                       mec='b')
-
-                self.mpl_subplot.xaxis.set_major_locator(ticker.MaxNLocator(
-                    integer=True))
-                self.mpl_subplot.yaxis.set_minor_locator(
-                    ticker.AutoMinorLocator())
-                self.mpl_subplot.set_xlim((min(x_values)-0.25,
-                                           max(x_values)+0.25))
-                self.mpl_subplot.set_ylim((ymin, ymax))
+                self.mpl_cust.mpl_value_settings(x_values, ymin, ymax)
 
             self.mplFig.canvas.draw()
+
+        # PyQtGraph Plot
+        elif self.haspqg and (self.plotLibSelector.currentText() ==
+                                  'PyQtGraph'):
+            # clear on plot - don't clear if additional data should be added
+            self.pqg_plot_widget.clear()  # clean canvas on call
+
+            self.pqg_plot_item.setYRange(ymin, ymax)
+
+            self.pqg_plot_widget.plot(x_values, data_values, symbol='o')
 
     def invalidatePlot(self, replot=True):
         if self.tabWidget.currentIndex() == 2:

@@ -30,7 +30,7 @@
       <enum>QTabWidget::North</enum>
      </property>
      <property name="currentIndex">
-      <number>3</number>
+      <number>2</number>
      </property>
      <widget class="QWidget" name="tabWidgetPage1">
       <attribute name="title">
@@ -124,6 +124,9 @@
             <property name="enabled">
              <bool>true</bool>
             </property>
+            <property name="toolTip">
+             <string>Autozoom to min and max of all loaded values</string>
+            </property>
             <property name="text">
              <string>Auto</string>
             </property>
@@ -180,6 +183,13 @@
            </spacer>
           </item>
          </layout>
+         <zorder>enableStatistics</zorder>
+         <zorder>yAutoCheckBox</zorder>
+         <zorder>minYLabel</zorder>
+         <zorder>leYMin</zorder>
+         <zorder>maxYLabel</zorder>
+         <zorder>leYMax</zorder>
+         <zorder>widget_2</zorder>
         </widget>
        </item>
        <item>
@@ -209,6 +219,10 @@ PyQtGraph (fast but lacking some features)</string>
         </widget>
        </item>
       </layout>
+      <zorder>graphControls</zorder>
+      <zorder>plotLibSelector</zorder>
+      <zorder>stackedWidget</zorder>
+      <zorder>enableStatistics</zorder>
      </widget>
      <widget class="QWidget" name="tabWidgetPage3">
       <attribute name="title">
@@ -547,7 +561,7 @@ PyQtGraph (fast but lacking some features)</string>
           <bool>false</bool>
          </property>
          <property name="text">
-          <string>Write time to metadata (overwrite existing)</string>
+          <string>Write time to metadata (XML)</string>
          </property>
          <property name="checked">
           <bool>true</bool>

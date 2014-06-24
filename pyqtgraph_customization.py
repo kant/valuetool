@@ -19,69 +19,76 @@
 
 import pyqtgraph as pg
 import time
+import datetime
 
 
 class DateTimeAxis(pg.AxisItem):
 
     time_enabled = False
+    # def tickValues(self, min, max, size):
+    #     if self.time_enabled:
+    #         res = [
+    #             (datetime.timedelta(days=365, hours=6), 0),
+    #             (datetime.timedelta(months=3), 0),
+    #             (datetime.timedelta(months=1), 0)
+    #         ]
+    #         return res
+    #     else:
+    #         return pg.AxisItem.tickValues(self, min, max, size)
 
     def setTimeEnabled(self, timeEnabled):
         self.time_enabled = timeEnabled
 
-    # def tickValues(self, min, max, size):
-    #     # min is the start of the range in seconds
-    #     # max is the end of the range in secods
-    #     # what is size?
-    #     range = max - min
-    #     majSpacing = 3600 * 24
-    #     minSpacing = majSpacing / 4
-    #     return [
-    #         (majSpacing, []),  # TODO write the correct values here
-    #         (minSpacing, [])]
-
     def tickStrings(self, values, scale, spacing):
+
+        if values is None or len(values) <= 0:
+            return []
+
         if self.time_enabled:
             strns = []
             timerange = max(values)-min(values)
-            #if rng < 120:
-            #    return pg.AxisItem.tickStrings(self, values, scale, spacing)
-            if timerange < 3600*24:
+
+            if timerange < 3600*24:  # less than one day
                 string = '%H:%M:%S'
                 label1 = '%b %d  %Y -'
                 label2 = ' %b %d, %Y'
-            elif 3600*24 <= timerange < 3600*24*30:
+            elif 3600*24 <= timerange < 3600*24*30:  # approx one month
                 string = '%d %H:%M'
                 label1 = '%b - '
                 label2 = '%b, %Y'
-            elif 3600*24*30 <= timerange < 3600*24*30*24:
+            elif 3600*24*30 <= timerange < 3600*24*30*24:  # approx 2 years
                 string = '%b %y'
                 label1 = '%Y -'
                 label2 = ' %Y'
-            elif timerange >= 3600*24*30*24:
+            elif timerange >= 3600*24*30*24:  # more than 2 years
                 string = '%Y'
                 label1 = ''
                 label2 = ''
+
             for x in values:
                 try:
                     strns.append(time.strftime(string, time.localtime(x)))
                 except ValueError:  # Windows can't handle dates before 1970
                     strns.append('')
             try:
-                #label = time.strftime(label1, time.localtime(min(
+                # label = time.strftime(label1, time.localtime(min(
                 # values)))+time.strftime(label2, time.localtime(max(values)))
-                label = time.strftime(label1, time.localtime(min(values)))
+                # label = time.strftime(label1, time.localtime(min(values)))
+                pass
             except ValueError:
-                label = ''
-            self.setLabel(text=label)
+                pass
+                # label = ''
+                # self.setLabel(text=label) # sets label below graph
             return strns
         else:
             strns = []
+
             for val in values:
                 try:
                     strns.append('%.0f' % val)
                 except ValueError:  # Windows can't handle dates before 1970
                     strns.append('')
-            self.setLabel(text='')
+            # self.setLabel(text='')
             return strns
 
 

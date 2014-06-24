@@ -49,35 +49,33 @@ class TimeTracker:
         #{
         #   'layer_id' : datetime.datetime(2014, 2, 23),
         #}
-        #self.next_date = datetime.datetime(2014, 5, 7, 00, 00, 00)
         self.registry = QgsMapLayerRegistry().instance()
 
     def enable_selection(self):
-        #self.registry.layersAdded(self.refresh_tracker)
         QObject.connect(self.registry,
                         SIGNAL("layersAdded(QList< QgsMapLayer * >)"),
                         self.refresh_tracker)
-        #self.registry.layersRemoved(self.refresh_tracker)
         QObject.connect(self.registry,
                         SIGNAL("layersRemoved(QStringList)"),
                         self.refresh_tracker)
-        #widget = self.parent.extractionPriorityListWidget
-        self.widget.itemChanged.connect(self.refresh_tracker)
-        self.widget.model().rowsMoved.connect(self.refresh_tracker)
 
-        #cut_first = self.parent.cutFirst
+        self.widget.itemChanged.connect(self.refresh_tracker)
+        self.widget.itemChanged.connect(self.validate_date_string)
+
+        self.widget.model().rowsMoved.connect(self.refresh_tracker)
+        self.widget.model().rowsMoved.connect(self.validate_date_string)
+
         self.cut_first.valueChanged.connect(self.cut_first_spinbox_changed)
         self.cut_first.valueChanged.connect(self.refresh_tracker)
 
-        #select_date = self.parent.dateLength
         self.select_date.valueChanged.connect(self.date_length_spinbox_changed)
         self.select_date.valueChanged.connect(self.refresh_tracker)
 
-        #pattern_edit = self.parent.patternLineEdit
         self.pattern_edit.textChanged.connect(self.refresh_tracker)
+        self.pattern_edit.textChanged.connect(self.validate_date_string)
 
-        #sample_edit = self.parent.sampleLineEdit
         self.sample_edit.textChanged.connect(self.refresh_tracker)
+        self.sample_edit.textChanged.connect(self.validate_date_string)
 
         self.initiate_values()
 
@@ -89,24 +87,24 @@ class TimeTracker:
                            SIGNAL("layersRemoved(QStringList)"),
                            self.refresh_tracker)
 
-        #widget = self.parent.extractionPriorityListWidget
         self.widget.itemChanged.disconnect(self.refresh_tracker)
-        self.widget.model().rowsMoved.disconnect(self.refresh_tracker)
+        self.widget.itemChanged.disconnect(self.validate_date_string)
 
-        #cut_first = self.parent.cutFirst
+        self.widget.model().rowsMoved.disconnect(self.refresh_tracker)
+        self.widget.model().rowsMoved.disconnect(self.validate_date_string)
+
         self.cut_first.valueChanged.disconnect(self.cut_first_spinbox_changed)
         self.cut_first.valueChanged.disconnect(self.refresh_tracker)
 
-        #select_date = self.parent.dateLength
         self.select_date.valueChanged.disconnect(
             self.date_length_spinbox_changed)
         self.select_date.valueChanged.disconnect(self.refresh_tracker)
 
-        #pattern_edit = self.parent.patternLineEdit
         self.pattern_edit.textChanged.disconnect(self.refresh_tracker)
+        self.pattern_edit.textChanged.disconnect(self.validate_date_string)
 
-        #sample_edit = self.parent.sampleLineEdit
         self.sample_edit.textChanged.disconnect(self.refresh_tracker)
+        self.sample_edit.textChanged.disconnect(self.validate_date_string)
 
     def refresh_tracker(self):
         # initialise (or re-initialise) self.layer_times
@@ -114,9 +112,9 @@ class TimeTracker:
         self.layer_times = {}
         # Loop through all raster layers in qgis and call
         # track_layer, populating the dictionary
-        # FIXME update registry to the latest state here (problems with
-        # removing and adding layer), On New Layer = Layer
-        # AttributeError: 'NoneType' object has no attribute 'RasterLayer'
+
+        if QgsMapLayerRegistry is None:
+            return
 
         reg = QgsMapLayerRegistry.instance()
         for layer_id, layer in reg.mapLayers().iteritems():
@@ -128,9 +126,8 @@ class TimeTracker:
 
     def track_layer(self, layer):
         # given a layer, determine its date and write the entry to the data
-        # structure. Write dummy dates for now
+        # structure.
         layer_id = layer.id()
-
         # extract time from layers if there is some
         self.layer_times[layer_id] = self.extract_time_from_layer(layer)
 
@@ -186,10 +183,9 @@ class TimeTracker:
         # return None
 
     def extract_time_from_persistent_metadata(self, layer):
-        # FIXME add functionality here
         layer_path = layer.source()
         # read from associated *.aux.xml file
-        ds = gdal.Open(layer_path, GA_Update)
+        ds = gdal.Open(layer_path, GA_ReadOnly)
         date = ds.GetMetadataItem('DateTime')
         if date is None:
             return_date = None
@@ -247,9 +243,6 @@ class TimeTracker:
         return final_name
 
     def extract_time_from_filename(self, layer):
-        # style QLineEdit
-        pattern_line = self.pattern_edit
-
         path_to_layer = layer.source()
         filename = QFileInfo(path_to_layer).baseName()
         trimmed_filename = self.make_strptime_safe(filename)
@@ -257,16 +250,52 @@ class TimeTracker:
         pattern = self.parent.patternLineEdit.text()
         try:
             date = datetime.datetime.strptime(trimmed_filename, pattern)
-            pal = QPalette(pattern_line.palette())
-            pal.setColor(QPalette.Base, QColor('green'))
-            pattern_line.setPalette(pal)
         except ValueError:
             date = None
-            pal = QPalette(pattern_line.palette())
-            pal.setColor(QPalette.Base, QColor('red'))
-            pattern_line.setPalette(pal)
         # return that date as a datetime.datetime
         return date
+
+    def validate_date_string(self):
+        list_widget = self.parent.extractionPriorityListWidget
+        valid = True
+
+        pattern_line = self.pattern_edit
+        pal = QPalette(pattern_line.palette())
+
+        pattern = self.parent.patternLineEdit.text()
+        sample = self.parent.sampleLineEdit.text()
+        today_string = ''
+        i = 0
+        from_file_name_checked = False
+        # orig_color = pal.background()
+
+        while i < list_widget.count():
+
+            if list_widget.item(i).text() == "Filename" and \
+                    list_widget.item(i).checkState() == Qt.Checked:
+                from_file_name_checked = True
+            i += 1
+        if not from_file_name_checked:
+            pal.setColor(QPalette.Base, QColor('white'))
+            pattern_line.setPalette(pal)
+            return
+        try:
+            datetime.datetime.strptime(sample,
+                                       pattern)
+        except ValueError:
+            valid = False
+        try:
+            today_string = datetime.datetime.strftime(datetime.datetime.today(),
+                                                      pattern)
+        except ValueError:
+            valid = False
+        if len(today_string) != len(sample):
+            valid = False
+        if valid:
+            pal.setColor(QPalette.Base, QColor(0, 255, 0, 127))  # light green
+        else:
+            pal.setColor(QPalette.Base, QColor(255, 0, 0, 127))  # light red
+        pattern_line.setPalette(pal)
 
     def extract_time_from_exif(self, layer):
         # FIXME add functionality here
