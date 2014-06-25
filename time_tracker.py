@@ -211,7 +211,7 @@ class TimeTracker:
         if path_to_layer is None:
             return
 
-        filename = QFileInfo(path_to_layer).baseName()
+        filename = QFileInfo(path_to_layer).completeBaseName()
 
         if self.parent.cutFirst.value() > 0 and \
            self.parent.dateLength.value() > 0:
