@@ -68,6 +68,8 @@ class MplSettings:
         elif datetime.timedelta(days=365) > date_delta >= datetime.timedelta(
                 days=1):
             space = datetime.timedelta(days=1)
+        else:
+            space = datetime.timedelta(hours=6)
 
         min_date = min(x_values)-space
         max_date = max(x_values)+space

@@ -229,7 +229,7 @@ class TimeTracker:
                 break
         if path_to_layer is None:
             return
-        filename = QFileInfo(path_to_layer).baseName()
+        filename = QFileInfo(path_to_layer).completeBaseName()
         final_name = self.make_strptime_safe(filename)
         # set the value back to GUI
         self.parent.sampleLineEdit.setText(final_name)
@@ -244,7 +244,7 @@ class TimeTracker:
 
     def extract_time_from_filename(self, layer):
         path_to_layer = layer.source()
-        filename = QFileInfo(path_to_layer).baseName()
+        filename = QFileInfo(path_to_layer).completeBaseName()
         trimmed_filename = self.make_strptime_safe(filename)
 
         pattern = self.parent.patternLineEdit.text()
