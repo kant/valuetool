@@ -1,0 +1,4 @@
+valuetool
+=========
+
+qgis valuetool plugin
