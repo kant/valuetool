@@ -691,6 +691,8 @@ class ValueWidget(QWidget, Ui_Widget):
                     # instead to not be plotted, be aware of min()
                     # calculation in plotting range = affects graphs (check
                     # there?
+            if not data_values:
+                data_values = [0]
 
         if self.yAutoCheckBox.isChecked():
             ymin = self.ymin

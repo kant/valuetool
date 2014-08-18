@@ -51,6 +51,7 @@ class ValueTool:
         # self.action = QAction(QIcon(":/plugins/valuetool/icon.png"),
         # "Value Tool", self.iface.getMainWindow())
         # self.action.setWhatsThis("Value Tool")
+        # self.action.setWhatsThis("Value Tool")
         # QObject.connect(self.action, SIGNAL("activated()"), self.run)
         # add toolbar button and menu item
         #self.iface.addToolBarIcon(self.action)

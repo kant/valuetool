@@ -49,7 +49,8 @@ class TimeTracker:
         #{
         #   'layer_id' : datetime.datetime(2014, 2, 23),
         #}
-        self.registry = QgsMapLayerRegistry().instance()
+
+        self.registry = QgsMapLayerRegistry.instance()
 
     def enable_selection(self):
         QObject.connect(self.registry,
