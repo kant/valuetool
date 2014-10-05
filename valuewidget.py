@@ -678,6 +678,14 @@ class ValueWidget(QWidget, Ui_Widget):
         # ]
         self.pqg_axis.setTicks([major_tick_times])
 
+    def smooth(self, orig_x, orig_y):
+        new_x = []
+        new_y = []
+        for i in range(1, len(orig_x)-1):
+            new_x.append(orig_x[i])
+            new_y.append((orig_y[i-1] + orig_y[i] + orig_y[i+1]) / 3.0)
+        return new_x, new_y
+
     def plot(self):
         data_values = []
         x_values = []
@@ -693,6 +701,10 @@ class ValueWidget(QWidget, Ui_Widget):
                     # there?
             if not data_values:
                 data_values = [0]
+
+        do_derived = True
+        if do_derived:
+            derived_x, derived_y = self.smooth(x_values, data_values)
 
         if self.yAutoCheckBox.isChecked():
             ymin = self.ymin
@@ -728,34 +740,50 @@ class ValueWidget(QWidget, Ui_Widget):
                               'matplotlib'):
             # dont clear to draw another row of data
             self.mpl_subplot.clear()
-
             self.mpl_cust.mpl_setup()
-
             # If Multi-temporal Analysis enabled set xAxis away from Standard
             # 1 to values to dates.
+            # Plot code from here
+            self.mpl_subplot.plot_date(x_values,
+                                       data_values,
+                                       'b-',
+                                       xdate=self.mt_enabled,
+                                       ydate=False,
+                                       marker='o',
+                                       markersize=2,
+                                       color='k',
+                                       mfc='b',
+                                       mec='b')
             if self.mt_enabled:
-                # Plot code from here
-                self.mpl_subplot.plot_date(x_values,
-                                           data_values,
-                                           'b-',
-                                           xdate=True,
-                                           ydate=False,
-                                           marker='o',
-                                           color='k',
-                                           mfc='b',
-                                           mec='b')
                 plt.xticks(rotation='vertical')
                 self.mpl_cust.mpl_date_settings(x_values, ymin, ymax)
             else:
-                self.mpl_subplot.plot(x_values,
-                                      data_values,
-                                      'b-',
-                                      marker='o',
-                                      color='k',
-                                      mfc='b',
-                                      mec='b')
                 self.mpl_cust.mpl_value_settings(x_values, ymin, ymax)
 
+            if do_derived:
+                self.mpl_subplot.plot_date(derived_x,
+                                       derived_y,
+                                       'b-',
+                                       xdate=self.mt_enabled,
+                                       ydate=False,
+                                       marker='o',
+                                       markersize=2,
+                                       color='r',
+                                       mfc='b',
+                                       mec='b')
+            # if True:
+            #     fun_x = [0, 10, 7, 13, 10, 20]
+            #     fun_y = [0, 0, 6000, 6000, 0, 0]
+            #     self.mpl_subplot.plot_date(fun_x,
+            #                            fun_y,
+            #                            'b-',
+            #                            xdate=self.mt_enabled,
+            #                            ydate=False,
+            #                            marker='o',
+            #                            markersize=3,
+            #                            color='y',
+            #                            mfc='b',
+            #                            mec='b')
             self.mplFig.canvas.draw()
 
         # PyQtGraph Plot
@@ -767,6 +795,9 @@ class ValueWidget(QWidget, Ui_Widget):
             self.pqg_plot_item.setYRange(ymin, ymax)
 
             self.pqg_plot_widget.plot(x_values, data_values, symbol='o')
+            if do_derived:
+                self.pqg_plot_widget.plot(derived_x, derived_y, symbol='o', pen=pg.mkPen(color='r'))
+
 
     def invalidatePlot(self, replot=True):
         if self.tabWidget.currentIndex() == 2:

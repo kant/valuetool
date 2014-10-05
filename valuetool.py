@@ -3,8 +3,8 @@
          Value Tool       - A QGIS plugin to get values at the mouse pointer
                              -------------------
     begin                : 2008-08-26
-    copyright            : (C) 2008 by G. Picard
-    email                : 
+    copyright            : (C) 2008 by G. Picard (C) 2014 by W.Macho
+    email                : werner.macho@gmail.com
  ***************************************************************************/
 
 /***************************************************************************
