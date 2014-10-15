@@ -2,7 +2,7 @@
 
 # Form implementation generated from reading ui file 'ui_valuewidgetbase.ui'
 #
-# Created: Tue Jun 24 14:28:55 2014
+# Created: Wed Oct 15 13:28:53 2014
 #      by: PyQt4 UI code generator 4.10.3
 #
 # WARNING! All changes made in this file will be lost!
@@ -27,11 +27,15 @@ class Ui_ValueWidgetBase(object):
     def setupUi(self, ValueWidgetBase):
         ValueWidgetBase.setObjectName(_fromUtf8("ValueWidgetBase"))
         ValueWidgetBase.resize(330, 388)
-        self.verticalLayout = QtGui.QVBoxLayout(ValueWidgetBase)
-        self.verticalLayout.setObjectName(_fromUtf8("verticalLayout"))
+        self.gridLayout = QtGui.QGridLayout(ValueWidgetBase)
+        self.gridLayout.setObjectName(_fromUtf8("gridLayout"))
         self.toggleValueTool = QtGui.QCheckBox(ValueWidgetBase)
         self.toggleValueTool.setObjectName(_fromUtf8("toggleValueTool"))
-        self.verticalLayout.addWidget(self.toggleValueTool)
+        self.gridLayout.addWidget(self.toggleValueTool, 0, 0, 1, 1)
+        self.toggleFilter = QtGui.QCheckBox(ValueWidgetBase)
+        self.toggleFilter.setEnabled(False)
+        self.toggleFilter.setObjectName(_fromUtf8("toggleFilter"))
+        self.gridLayout.addWidget(self.toggleFilter, 0, 1, 1, 1)
         self.tabWidget = QtGui.QTabWidget(ValueWidgetBase)
         self.tabWidget.setTabPosition(QtGui.QTabWidget.North)
         self.tabWidget.setObjectName(_fromUtf8("tabWidget"))
@@ -255,21 +259,24 @@ class Ui_ValueWidgetBase(object):
         self.writeMetaDataCheckBox.setObjectName(_fromUtf8("writeMetaDataCheckBox"))
         self.formLayout.setWidget(7, QtGui.QFormLayout.SpanningRole, self.writeMetaDataCheckBox)
         self.tabWidget.addTab(self.multitemporalTabWidget, _fromUtf8(""))
-        self.verticalLayout.addWidget(self.tabWidget)
+        self.gridLayout.addWidget(self.tabWidget, 1, 0, 1, 2)
         self.labelStatus = QtGui.QLabel(ValueWidgetBase)
         self.labelStatus.setText(_fromUtf8(""))
         self.labelStatus.setObjectName(_fromUtf8("labelStatus"))
-        self.verticalLayout.addWidget(self.labelStatus)
+        self.gridLayout.addWidget(self.labelStatus, 2, 0, 1, 1)
 
         self.retranslateUi(ValueWidgetBase)
         self.tabWidget.setCurrentIndex(2)
         self.stackedWidget.setCurrentIndex(-1)
+        QtCore.QObject.connect(self.toggleValueTool, QtCore.SIGNAL(_fromUtf8("toggled(bool)")), self.toggleFilter.setEnabled)
         QtCore.QMetaObject.connectSlotsByName(ValueWidgetBase)
 
     def retranslateUi(self, ValueWidgetBase):
         ValueWidgetBase.setWindowTitle(_translate("ValueWidgetBase", "Form", None))
         self.toggleValueTool.setToolTip(_translate("ValueWidgetBase", "Can also be enabled using the \"Value Tool\" toolbar icon", None))
         self.toggleValueTool.setText(_translate("ValueWidgetBase", "Enable", None))
+        self.toggleFilter.setToolTip(_translate("ValueWidgetBase", "Can also be enabled using the \"Value Tool\" toolbar icon", None))
+        self.toggleFilter.setText(_translate("ValueWidgetBase", "Enable Filtering", None))
         self.cbxDigits.setToolTip(_translate("ValueWidgetBase", "Specify how many digits to show in table", None))
         self.cbxDigits.setText(_translate("ValueWidgetBase", "Decimals", None))
         item = self.valueTable.horizontalHeaderItem(0)

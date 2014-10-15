@@ -13,8 +13,8 @@
   <property name="windowTitle">
    <string>Form</string>
   </property>
-  <layout class="QVBoxLayout" name="verticalLayout">
-   <item>
+  <layout class="QGridLayout" name="gridLayout">
+   <item row="0" column="0">
     <widget class="QCheckBox" name="toggleValueTool">
      <property name="toolTip">
       <string>Can also be enabled using the &quot;Value Tool&quot; toolbar icon</string>
@@ -24,7 +24,20 @@
      </property>
     </widget>
    </item>
-   <item>
+   <item row="0" column="1">
+    <widget class="QCheckBox" name="toggleFilter">
+     <property name="enabled">
+      <bool>false</bool>
+     </property>
+     <property name="toolTip">
+      <string>Can also be enabled using the &quot;Value Tool&quot; toolbar icon</string>
+     </property>
+     <property name="text">
+      <string>Enable Filtering</string>
+     </property>
+    </widget>
+   </item>
+   <item row="1" column="0" colspan="2">
     <widget class="QTabWidget" name="tabWidget">
      <property name="tabPosition">
       <enum>QTabWidget::North</enum>
@@ -183,13 +196,6 @@
            </spacer>
           </item>
          </layout>
-         <zorder>enableStatistics</zorder>
-         <zorder>yAutoCheckBox</zorder>
-         <zorder>minYLabel</zorder>
-         <zorder>leYMin</zorder>
-         <zorder>maxYLabel</zorder>
-         <zorder>leYMax</zorder>
-         <zorder>widget_2</zorder>
         </widget>
        </item>
        <item>
@@ -219,10 +225,6 @@ PyQtGraph (fast but lacking some features)</string>
         </widget>
        </item>
       </layout>
-      <zorder>graphControls</zorder>
-      <zorder>plotLibSelector</zorder>
-      <zorder>stackedWidget</zorder>
-      <zorder>enableStatistics</zorder>
      </widget>
      <widget class="QWidget" name="tabWidgetPage3">
       <attribute name="title">
@@ -572,7 +574,7 @@ PyQtGraph (fast but lacking some features)</string>
      </widget>
     </widget>
    </item>
-   <item>
+   <item row="2" column="0">
     <widget class="QLabel" name="labelStatus">
      <property name="text">
       <string/>
@@ -582,5 +584,22 @@ PyQtGraph (fast but lacking some features)</string>
   </layout>
  </widget>
  <resources/>
- <connections/>
+ <connections>
+  <connection>
+   <sender>toggleValueTool</sender>
+   <signal>toggled(bool)</signal>
+   <receiver>toggleFilter</receiver>
+   <slot>setEnabled(bool)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>110</x>
+     <y>13</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>221</x>
+     <y>17</y>
+    </hint>
+   </hints>
+  </connection>
+ </connections>
 </ui>

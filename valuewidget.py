@@ -32,6 +32,7 @@ import fnmatch  # Import filtering for Layernames
 import datetime  # for dealing with Multi-temporal data
 from distutils.version import StrictVersion
 from time_tracker import TimeTracker
+from applyfilter import ApplyFilter
 import time
 import operator
 
@@ -106,6 +107,7 @@ class ValueWidget(QWidget, Ui_Widget):
         self.leYMax.setText(str(self.ymax))
 
         self.tracker = TimeTracker(self, self.canvas)
+        self.filter = ApplyFilter(self, self.canvas)
         self.mpl_cust = MplSettings(self, self.canvas)
 
         # self.setupUi_plot()
@@ -678,14 +680,6 @@ class ValueWidget(QWidget, Ui_Widget):
         # ]
         self.pqg_axis.setTicks([major_tick_times])
 
-    def smooth(self, orig_x, orig_y):
-        new_x = []
-        new_y = []
-        for i in range(1, len(orig_x)-1):
-            new_x.append(orig_x[i])
-            new_y.append((orig_y[i-1] + orig_y[i] + orig_y[i+1]) / 3.0)
-        return new_x, new_y
-
     def plot(self):
         data_values = []
         x_values = []
@@ -702,9 +696,10 @@ class ValueWidget(QWidget, Ui_Widget):
             if not data_values:
                 data_values = [0]
 
-        do_derived = True
+        do_derived = self.toggleFilter.isChecked()
+
         if do_derived:
-            derived_x, derived_y = self.smooth(x_values, data_values)
+            derived_x, derived_y = self.filter.smooth(x_values, data_values)
 
         if self.yAutoCheckBox.isChecked():
             ymin = self.ymin
@@ -794,7 +789,7 @@ class ValueWidget(QWidget, Ui_Widget):
 
             self.pqg_plot_item.setYRange(ymin, ymax)
 
-            self.pqg_plot_widget.plot(x_values, data_values, symbol='o')
+            self.pqg_plot_widget.plot(x_values, data_values)
             if do_derived:
                 self.pqg_plot_widget.plot(derived_x, derived_y, symbol='o', pen=pg.mkPen(color='r'))
 
