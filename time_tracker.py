@@ -300,16 +300,16 @@ class TimeTracker:
 
     def extract_time_from_exif(self, layer):
         # FIXME add functionality here
-        return datetime.datetime(2000, 3, 1)
+        return #datetime.datetime(2000, 3, 1)
 
     def extract_time_from_tif(self, layer):
         # FIXME add functionality here
-        return datetime.datetime(2000, 12, 1)
+        return #datetime.datetime(2000, 12, 1)
 
     def write_time_to_metadata(self, layer, t):
         layer_path = layer.source()
         # read from associated *.aux.xml file
-        ds = gdal.Open(layer_path, GA_ReadOnly)
+        ds = gdal.Open(layer_path, GA_Update)
         if t is not None:
             metadata = t.isoformat()
             ds.SetMetadataItem('DateTime', metadata, '')
