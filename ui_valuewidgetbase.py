@@ -2,7 +2,7 @@
 
 # Form implementation generated from reading ui file 'ui_valuewidgetbase.ui'
 #
-# Created: Wed Oct 15 13:28:53 2014
+# Created: Fri Dec 12 20:35:42 2014
 #      by: PyQt4 UI code generator 4.10.3
 #
 # WARNING! All changes made in this file will be lost!
@@ -66,12 +66,14 @@ class Ui_ValueWidgetBase(object):
         self.verticalLayout_2.addWidget(self.widget)
         self.valueTable = QtGui.QTableWidget(self.tabWidgetPage1)
         self.valueTable.setObjectName(_fromUtf8("valueTable"))
-        self.valueTable.setColumnCount(2)
+        self.valueTable.setColumnCount(3)
         self.valueTable.setRowCount(0)
         item = QtGui.QTableWidgetItem()
         self.valueTable.setHorizontalHeaderItem(0, item)
         item = QtGui.QTableWidgetItem()
         self.valueTable.setHorizontalHeaderItem(1, item)
+        item = QtGui.QTableWidgetItem()
+        self.valueTable.setHorizontalHeaderItem(2, item)
         self.verticalLayout_2.addWidget(self.valueTable)
         self.tabWidget.addTab(self.tabWidgetPage1, _fromUtf8(""))
         self.tabWidgetPage2 = QtGui.QWidget()
@@ -266,7 +268,7 @@ class Ui_ValueWidgetBase(object):
         self.gridLayout.addWidget(self.labelStatus, 2, 0, 1, 1)
 
         self.retranslateUi(ValueWidgetBase)
-        self.tabWidget.setCurrentIndex(2)
+        self.tabWidget.setCurrentIndex(0)
         self.stackedWidget.setCurrentIndex(-1)
         QtCore.QObject.connect(self.toggleValueTool, QtCore.SIGNAL(_fromUtf8("toggled(bool)")), self.toggleFilter.setEnabled)
         QtCore.QMetaObject.connectSlotsByName(ValueWidgetBase)
@@ -279,10 +281,13 @@ class Ui_ValueWidgetBase(object):
         self.toggleFilter.setText(_translate("ValueWidgetBase", "Enable Filtering", None))
         self.cbxDigits.setToolTip(_translate("ValueWidgetBase", "Specify how many digits to show in table", None))
         self.cbxDigits.setText(_translate("ValueWidgetBase", "Decimals", None))
+        self.valueTable.setSortingEnabled(True)
         item = self.valueTable.horizontalHeaderItem(0)
         item.setText(_translate("ValueWidgetBase", "Layer", None))
         item = self.valueTable.horizontalHeaderItem(1)
         item.setText(_translate("ValueWidgetBase", "Value", None))
+        item = self.valueTable.horizontalHeaderItem(2)
+        item.setText(_translate("ValueWidgetBase", "Date", None))
         self.tabWidget.setTabText(self.tabWidget.indexOf(self.tabWidgetPage1), _translate("ValueWidgetBase", "Table", None))
         self.enableStatistics.setToolTip(_translate("ValueWidgetBase", "Compute min/max when layers are loaded", None))
         self.enableStatistics.setText(_translate("ValueWidgetBase", "Stats", None))

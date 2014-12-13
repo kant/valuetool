@@ -153,8 +153,8 @@ class ValueWidget(QWidget, Ui_Widget):
         if state == 1:
             self.leYMin.setEnabled(False)
             self.leYMax.setEnabled(False)
-            self.leYMin.setText( str(self.ymin) )
-            self.leYMax.setText( str(self.ymax) )
+            self.leYMin.setText(str(self.ymin))
+            self.leYMax.setText(str(self.ymax))
         else:
             self.leYMin.setEnabled(True)
             self.leYMax.setEnabled(True)
@@ -600,25 +600,37 @@ class ValueWidget(QWidget, Ui_Widget):
         return None
 
     def printInTable(self):
+        self.valueTable.clearContents()
         # set table widget row count
         self.valueTable.setRowCount(len(self.values))
         irow = 0
         for layername, xval, value in self.values:
 
-            # limit number of decimal places if requested
-            if self.cbxDigits.isChecked():
-                try:
-                    value = str("{0:."+str(self.spinDigits.value())+"f}").format(float(value))
-                except ValueError:
-                    pass
-
             if self.valueTable.item(irow, 0) is None:
                 # create the item
                 self.valueTable.setItem(irow, 0, QTableWidgetItem())
                 self.valueTable.setItem(irow, 1, QTableWidgetItem())
+                self.valueTable.setItem(irow, 2, QTableWidgetItem())
 
             self.valueTable.item(irow, 0).setText(layername)
-            self.valueTable.item(irow, 1).setText(value)
+
+            if self.mt_enabled:
+                self.valueTable.item(irow, 2).setText(str(xval))
+            #else:
+                # self.valueTable.item(irow, 2).setText('')
+
+            if value == 'no data' or value == 'out of extent':
+                self.valueTable.item(irow, 1).setText(value)
+            else:
+                value = float(value)
+                if self.cbxDigits.isChecked():
+                    try:
+                        x = str(self.spinDigits.value())
+                        y = "{:."+x+"f}"
+                        value = y.format(value)
+                    except ValueError:
+                        pass
+                self.valueTable.item(irow, 1).setData(Qt.EditRole, value)
             irow += 1
 
     def refresh_ticks(self):

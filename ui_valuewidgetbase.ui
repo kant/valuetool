@@ -43,7 +43,7 @@
       <enum>QTabWidget::North</enum>
      </property>
      <property name="currentIndex">
-      <number>2</number>
+      <number>0</number>
      </property>
      <widget class="QWidget" name="tabWidgetPage1">
       <attribute name="title">
@@ -97,6 +97,9 @@
        </item>
        <item>
         <widget class="QTableWidget" name="valueTable">
+         <property name="sortingEnabled">
+          <bool>true</bool>
+         </property>
          <column>
           <property name="text">
            <string>Layer</string>
@@ -105,6 +108,11 @@
          <column>
           <property name="text">
            <string>Value</string>
+          </property>
+         </column>
+         <column>
+          <property name="text">
+           <string>Date</string>
           </property>
          </column>
         </widget>
@@ -119,7 +127,16 @@
        <item>
         <widget class="QWidget" name="graphControls" native="true">
          <layout class="QHBoxLayout" name="horizontalLayout_2">
-          <property name="margin">
+          <property name="leftMargin">
+           <number>0</number>
+          </property>
+          <property name="topMargin">
+           <number>0</number>
+          </property>
+          <property name="rightMargin">
+           <number>0</number>
+          </property>
+          <property name="bottomMargin">
            <number>0</number>
           </property>
           <item>

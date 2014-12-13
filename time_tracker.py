@@ -23,7 +23,7 @@ from qgis.core import *
 
 import datetime
 
-#work with gdal xml
+# work with gdal xml
 try:
     from osgeo import gdal
     from osgeo.gdalconst import *
@@ -46,9 +46,9 @@ class TimeTracker:
         self.sample_edit = self.parent.sampleLineEdit
 
         # This data structure looks like:
-        #{
+        # {
         #   'layer_id' : datetime.datetime(2014, 2, 23),
-        #}
+        # }
 
         self.registry = QgsMapLayerRegistry.instance()
 
