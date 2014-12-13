@@ -92,6 +92,13 @@
             </property>
            </spacer>
           </item>
+          <item>
+           <widget class="QPushButton" name="exportPushButton">
+            <property name="text">
+             <string>Export to CSV</string>
+            </property>
+           </widget>
+          </item>
          </layout>
         </widget>
        </item>
@@ -115,13 +122,6 @@
            <string>Date</string>
           </property>
          </column>
-        </widget>
-       </item>
-       <item>
-        <widget class="QPushButton" name="exportPushButton">
-         <property name="text">
-          <string>Export to CSV</string>
-         </property>
         </widget>
        </item>
       </layout>
