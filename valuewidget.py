@@ -34,6 +34,7 @@ from distutils.version import StrictVersion
 from time_tracker import TimeTracker
 from applyfilter import ApplyFilter
 import time
+import csv
 import operator
 
 from ui_valuewidgetbase import Ui_ValueWidgetBase as Ui_Widget
@@ -144,6 +145,7 @@ class ValueWidget(QWidget, Ui_Widget):
         QObject.connect(self.yAutoCheckBox,
                         SIGNAL("toggled ( bool )"),
                         self.yAutoCheckBoxEnabled)
+        self.exportPushButton.clicked.connect(self.export_values)
 
         self.setupUi_plot()
 
@@ -545,6 +547,22 @@ class ValueWidget(QWidget, Ui_Widget):
             self.plot()
         else:
             self.printInTable()
+
+    def export_values(self):
+        path = QtGui.QFileDialog.getSaveFileName(self, 'Save File', '', 'CSV(*.csv)')
+        if path != " ":
+            with open(unicode(path), 'wb') as stream:
+                writer = csv.writer(stream)
+                for row in range(self.valueTable.rowCount()):
+                    rowdata = []
+                    for column in range(self.valueTable.columnCount()):
+                        item = self.valueTable.item(row, column)
+                        if item is not None:
+                            rowdata.append(
+                                unicode(item.text()).encode('utf8'))
+                        else:
+                            rowdata.append('')
+                    writer.writerow(rowdata)
 
     def calculateStatistics(self, layersWOStatistics):
 

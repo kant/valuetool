@@ -2,7 +2,7 @@
 
 # Form implementation generated from reading ui file 'ui_valuewidgetbase.ui'
 #
-# Created: Fri Dec 12 20:35:42 2014
+# Created: Sat Dec 13 13:56:53 2014
 #      by: PyQt4 UI code generator 4.10.3
 #
 # WARNING! All changes made in this file will be lost!
@@ -75,6 +75,9 @@ class Ui_ValueWidgetBase(object):
         item = QtGui.QTableWidgetItem()
         self.valueTable.setHorizontalHeaderItem(2, item)
         self.verticalLayout_2.addWidget(self.valueTable)
+        self.exportPushButton = QtGui.QPushButton(self.tabWidgetPage1)
+        self.exportPushButton.setObjectName(_fromUtf8("exportPushButton"))
+        self.verticalLayout_2.addWidget(self.exportPushButton)
         self.tabWidget.addTab(self.tabWidgetPage1, _fromUtf8(""))
         self.tabWidgetPage2 = QtGui.QWidget()
         self.tabWidgetPage2.setObjectName(_fromUtf8("tabWidgetPage2"))
@@ -288,6 +291,7 @@ class Ui_ValueWidgetBase(object):
         item.setText(_translate("ValueWidgetBase", "Value", None))
         item = self.valueTable.horizontalHeaderItem(2)
         item.setText(_translate("ValueWidgetBase", "Date", None))
+        self.exportPushButton.setText(_translate("ValueWidgetBase", "Export to CSV", None))
         self.tabWidget.setTabText(self.tabWidget.indexOf(self.tabWidgetPage1), _translate("ValueWidgetBase", "Table", None))
         self.enableStatistics.setToolTip(_translate("ValueWidgetBase", "Compute min/max when layers are loaded", None))
         self.enableStatistics.setText(_translate("ValueWidgetBase", "Stats", None))
