@@ -550,7 +550,7 @@ class ValueWidget(QWidget, Ui_Widget):
 
     def export_values(self):
         path = QtGui.QFileDialog.getSaveFileName(self, 'Save File', '', 'CSV(*.csv)')
-        if path != " ":
+        if path != "":
             with open(unicode(path), 'wb') as stream:
                 writer = csv.writer(stream)
                 for row in range(self.valueTable.rowCount()):
