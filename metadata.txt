@@ -5,7 +5,7 @@ about = Display raster layer values at current mouse position
 description = Display in a table or plot the values from the visible raster 
 	layers at the current mouse position
 category = Raster
-version = version 0.8.5
+version = version 0.9.0
 author = 'Ghislain Picard - Etienne Tourigny'
 email=etourigny.dev@gmail.com
 ; original author is no longer contributing,
@@ -34,6 +34,6 @@ tags = raster
 homepage = http://hub.qgis.org/projects/valuetool
 tracker = http://hub.qgis.org/projects/valuetool/issues
 repository = https://github.com/etiennesky/valuetool
-icon = 
+icon = img/icon.png
 experimental = False
 deprecated = False

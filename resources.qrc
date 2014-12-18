@@ -1,6 +1,7 @@
 <RCC>
     <qresource prefix="/plugins/valuetool">
-        <file>icon.svg</file>
-        <file>bands.jpg</file>
+        <file>img/bands.jpg</file>
+        <file>img/icon.svg</file>
+        <file>img/icon.png</file>
     </qresource>
 </RCC>

@@ -633,7 +633,12 @@ class ValueWidget(QWidget, Ui_Widget):
             self.valueTable.item(irow, 0).setText(layername)
 
             if self.mt_enabled:
-                self.valueTable.item(irow, 2).setText(str(xval))
+                graphlib = self.plotLibSelector.currentText()
+                if graphlib == 'PyQtGraph':
+                    date = datetime.datetime.fromtimestamp(xval)
+                    self.valueTable.item(irow, 2).setText(str(date))
+                else:
+                    self.valueTable.item(irow, 2).setText(str(xval))
             #else:
                 # self.valueTable.item(irow, 2).setText('')
 
@@ -924,7 +929,7 @@ class ValueWidget(QWidget, Ui_Widget):
             self.selectionTable.setItem(j, 1, item)
             activeBands = self.activeBandsForRaster(layer)
             button = QToolButton()
-            button.setIcon(QtGui.QIcon(':/plugins/valuetool/bands.jpg'))
+            button.setIcon(QtGui.QIcon(':/plugins/valuetool/img/bands.jpg'))
             #button.setIconSize(QtCore.QSize(400, 400))
             button.setPopupMode(QToolButton.InstantPopup)
             group = QActionGroup(button)

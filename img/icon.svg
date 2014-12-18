@@ -1,0 +1,143 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!-- Created with Inkscape (http://www.inkscape.org/) -->
+
+<svg
+   xmlns:dc="http://purl.org/dc/elements/1.1/"
+   xmlns:cc="http://creativecommons.org/ns#"
+   xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+   xmlns:svg="http://www.w3.org/2000/svg"
+   xmlns="http://www.w3.org/2000/svg"
+   version="1.1"
+   width="24"
+   height="24"
+   id="svg5692">
+  <title
+     id="title2829">GIS icon theme 0.2</title>
+  <defs
+     id="defs5694" />
+  <metadata
+     id="metadata5697">
+    <rdf:RDF>
+      <cc:Work
+         rdf:about="">
+        <dc:format>image/svg+xml</dc:format>
+        <dc:type
+           rdf:resource="http://purl.org/dc/dcmitype/StillImage" />
+        <dc:title>GIS icon theme 0.2</dc:title>
+        <dc:creator>
+          <cc:Agent>
+            <dc:title>Robert Szczepanek</dc:title>
+          </cc:Agent>
+        </dc:creator>
+        <dc:rights>
+          <cc:Agent>
+            <dc:title>Robert Szczepanek</dc:title>
+          </cc:Agent>
+        </dc:rights>
+        <dc:subject>
+          <rdf:Bag>
+            <rdf:li>GIS icons</rdf:li>
+          </rdf:Bag>
+        </dc:subject>
+        <dc:coverage>GIS icons</dc:coverage>
+        <dc:description>http://robert.szczepanek.pl/</dc:description>
+        <cc:license
+           rdf:resource="http://creativecommons.org/licenses/by-sa/3.0/" />
+      </cc:Work>
+      <cc:License
+         rdf:about="http://creativecommons.org/licenses/by-sa/3.0/">
+        <cc:permits
+           rdf:resource="http://creativecommons.org/ns#Reproduction" />
+        <cc:permits
+           rdf:resource="http://creativecommons.org/ns#Distribution" />
+        <cc:requires
+           rdf:resource="http://creativecommons.org/ns#Notice" />
+        <cc:requires
+           rdf:resource="http://creativecommons.org/ns#Attribution" />
+        <cc:permits
+           rdf:resource="http://creativecommons.org/ns#DerivativeWorks" />
+        <cc:requires
+           rdf:resource="http://creativecommons.org/ns#ShareAlike" />
+      </cc:License>
+    </rdf:RDF>
+  </metadata>
+  <g
+     transform="translate(0,-8)"
+     id="layer2"
+     style="display:inline">
+    <rect
+       width="6.499999"
+       height="6.499999"
+       x="6.499999"
+       y="8"
+       id="rect6419"
+       style="fill:#6e97c4;fill-opacity:1;fill-rule:nonzero;stroke:none" />
+    <rect
+       width="6.499999"
+       height="6.499999"
+       x="13.000001"
+       y="8"
+       id="rect6419-6"
+       style="fill:#253e5b;fill-opacity:1;fill-rule:nonzero;stroke:none;display:inline" />
+    <rect
+       width="6.499999"
+       height="6.499999"
+       x="6.499999"
+       y="14.5"
+       id="rect6419-6-9"
+       style="fill:#253e5b;fill-opacity:1;fill-rule:nonzero;stroke:none;display:inline" />
+    <rect
+       width="6.499999"
+       height="6.499999"
+       x="13.000001"
+       y="14.5"
+       id="rect6419-0"
+       style="fill:#6d97c4;fill-opacity:1;fill-rule:nonzero;stroke:none;display:inline" />
+    <rect
+       width="6.499999"
+       height="6.499999"
+       x="0"
+       y="8"
+       id="rect6419-6-7"
+       style="fill:#253e5b;fill-opacity:1;fill-rule:nonzero;stroke:none;display:inline" />
+    <rect
+       width="6.499999"
+       height="6.499999"
+       x="0"
+       y="14.5"
+       id="rect6419-3"
+       style="fill:#6d97c4;fill-opacity:1;fill-rule:nonzero;stroke:none;display:inline" />
+    <rect
+       width="6.499999"
+       height="6.499999"
+       x="6.499999"
+       y="21.000002"
+       id="rect6419-5"
+       style="fill:#6d97c4;fill-opacity:1;fill-rule:nonzero;stroke:none;display:inline" />
+    <rect
+       width="6.499999"
+       height="6.499999"
+       x="0"
+       y="21.000002"
+       id="rect6419-6-6"
+       style="fill:#253e5b;fill-opacity:1;fill-rule:nonzero;stroke:none;display:inline" />
+    <rect
+       width="19.499998"
+       height="19.499998"
+       x="0"
+       y="8"
+       id="rect6554"
+       style="fill:none;stroke:none" />
+    <rect
+       width="6.499999"
+       height="6.499999"
+       x="13.000001"
+       y="21"
+       id="rect6419-6-3"
+       style="fill:#253e5b;fill-opacity:1;fill-rule:nonzero;stroke:none;display:inline" />
+    <path
+       d="m 22.687809,24.747126 -11.040403,-6.041722 4.740685,11.774598 1.887504,-3.056906 3.732067,4.080339 1.413426,-1.377587 -3.815532,-4.041249 3.082254,-1.337473 z"
+       id="path827"
+       style="fill:#ffffff;fill-rule:evenodd;stroke:#000000;stroke-width:0.59381819;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:4;stroke-dasharray:none" />
+  </g>
+</svg>

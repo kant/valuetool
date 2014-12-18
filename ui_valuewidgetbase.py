@@ -2,7 +2,7 @@
 
 # Form implementation generated from reading ui file 'ui_valuewidgetbase.ui'
 #
-# Created: Sat Dec 13 14:12:13 2014
+# Created: Tue Dec 16 16:45:57 2014
 #      by: PyQt4 UI code generator 4.10.3
 #
 # WARNING! All changes made in this file will be lost!
@@ -26,7 +26,7 @@ except AttributeError:
 class Ui_ValueWidgetBase(object):
     def setupUi(self, ValueWidgetBase):
         ValueWidgetBase.setObjectName(_fromUtf8("ValueWidgetBase"))
-        ValueWidgetBase.resize(330, 388)
+        ValueWidgetBase.resize(320, 411)
         self.gridLayout = QtGui.QGridLayout(ValueWidgetBase)
         self.gridLayout.setObjectName(_fromUtf8("gridLayout"))
         self.toggleValueTool = QtGui.QCheckBox(ValueWidgetBase)
@@ -35,7 +35,7 @@ class Ui_ValueWidgetBase(object):
         self.toggleFilter = QtGui.QCheckBox(ValueWidgetBase)
         self.toggleFilter.setEnabled(False)
         self.toggleFilter.setObjectName(_fromUtf8("toggleFilter"))
-        self.gridLayout.addWidget(self.toggleFilter, 0, 1, 1, 1)
+        self.gridLayout.addWidget(self.toggleFilter, 0, 2, 1, 1)
         self.tabWidget = QtGui.QTabWidget(ValueWidgetBase)
         self.tabWidget.setTabPosition(QtGui.QTabWidget.North)
         self.tabWidget.setObjectName(_fromUtf8("tabWidget"))
@@ -264,14 +264,16 @@ class Ui_ValueWidgetBase(object):
         self.writeMetaDataCheckBox.setObjectName(_fromUtf8("writeMetaDataCheckBox"))
         self.formLayout.setWidget(7, QtGui.QFormLayout.SpanningRole, self.writeMetaDataCheckBox)
         self.tabWidget.addTab(self.multitemporalTabWidget, _fromUtf8(""))
-        self.gridLayout.addWidget(self.tabWidget, 1, 0, 1, 2)
+        self.gridLayout.addWidget(self.tabWidget, 1, 0, 1, 3)
         self.labelStatus = QtGui.QLabel(ValueWidgetBase)
         self.labelStatus.setText(_fromUtf8(""))
         self.labelStatus.setObjectName(_fromUtf8("labelStatus"))
         self.gridLayout.addWidget(self.labelStatus, 2, 0, 1, 1)
+        spacerItem3 = QtGui.QSpacerItem(40, 20, QtGui.QSizePolicy.Expanding, QtGui.QSizePolicy.Minimum)
+        self.gridLayout.addItem(spacerItem3, 0, 1, 1, 1)
 
         self.retranslateUi(ValueWidgetBase)
-        self.tabWidget.setCurrentIndex(0)
+        self.tabWidget.setCurrentIndex(2)
         self.stackedWidget.setCurrentIndex(-1)
         QtCore.QObject.connect(self.toggleValueTool, QtCore.SIGNAL(_fromUtf8("toggled(bool)")), self.toggleFilter.setEnabled)
         QtCore.QMetaObject.connectSlotsByName(ValueWidgetBase)
@@ -331,7 +333,7 @@ class Ui_ValueWidgetBase(object):
 "<tr><td>[seq]</td><td> matches any character in seq</td></tr>\n"
 "<tr><td>[!seq]</td><td> matches any character not in seq</td></tr>\n"
 "</table></body></html>", None))
-        self.selectionStringLineEdit.setText(_translate("ValueWidgetBase", "??80290302014148[LG][LG]N*", None))
+        self.selectionStringLineEdit.setText(_translate("ValueWidgetBase", "*1?[89][!5-8]*", None))
         self.label_5.setText(_translate("ValueWidgetBase", "Select active layers and display options:", None))
         item = self.selectionTable.horizontalHeaderItem(0)
         item.setToolTip(_translate("ValueWidgetBase", "Select layers", None))

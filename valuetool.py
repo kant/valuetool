@@ -60,7 +60,7 @@ class ValueTool:
         #self.tool = selectPointTool(self.iface.getMapCanvas(),self.action)
 
         # add action to toolbar
-        self.action = QAction(QIcon(":/plugins/valuetool/icon.svg"),
+        self.action = QAction(QIcon(":/plugins/valuetool/img/icon.svg"),
                               "Value Tool", self.iface.mainWindow())
         self.iface.addToolBarIcon(self.action)
         self.tool = ValueMapTool(self.canvas, self.action)
